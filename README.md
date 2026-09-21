@@ -1,4 +1,4 @@
-# SISTEMAS DISTRIBUÍDOS
+# ByteBistro
 
 ## Sistema de Cardápio Digital e Gerenciamento de Pedidos
 
