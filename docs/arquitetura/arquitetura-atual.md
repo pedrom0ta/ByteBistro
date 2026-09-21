@@ -23,7 +23,7 @@ Node.js + TypeScript
       Prisma
         │
         ▼
-      SQLite
+      PostgreSQL
 ```
 
 ## Componentes e responsabilidades
@@ -46,7 +46,7 @@ Funções responsáveis por implementar a lógica de cada operação GraphQL (qu
 ### Prisma
 ORM utilizado para abstrair o acesso ao banco de dados, permitindo que o backend manipule os dados de forma segura e tipada.
 
-### SQLite
+### PostgreSQL
 Banco de dados utilizado atualmente para persistência das informações do sistema.
 
 ## Princípio arquitetural importante
