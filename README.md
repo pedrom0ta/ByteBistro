@@ -83,6 +83,34 @@ Dados fragmentados e perdidos.
 
 ---
 
+## Diagrama Conceitual
+
+```text
+┌─────────────────────┐
+│       CLIENTE       │
+│    Python/Tkinter   │
+└──────────┬──────────┘
+           │
+           │ HTTP / GraphQL
+           ▼
+┌─────────────────────┐
+│      BACKEND        │
+│ Node.js + TypeScript│
+│                     │
+│ Apollo Server       │
+│ Resolvers           │
+└──────────┬──────────┘
+           │
+           │ Prisma ORM
+           ▼
+┌─────────────────────┐
+│     BANCO DE DADOS  │
+│                     │
+│     PostgreSQL      │
+└─────────────────────┘
+
+---
+
 # ARQUITETURA
 
 ## Modelagem e Responsabilidades
