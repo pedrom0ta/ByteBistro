@@ -14,7 +14,7 @@ Armazenamento dos dados do sistema (restaurantes, menus, produtos e pedidos), co
 
 ## Limitação arquitetural
 
-O SQLite é um banco de dados local, baseado em arquivo. Isso significa que, caso múltiplas instâncias do backend sejam executadas futuramente, cada uma com seu próprio arquivo de banco, poderá haver inconsistência entre os dados armazenados em cada instância.
+O PostgreSQL entra como uma solução para a escalabilidade horizontal. Se tivermos várias instâncias do backend, todas elas podem acessar o mesmo banco de dados PostgreSQL. Assim, independentemente de qual servidor receber a requisição, ele trabalha com a mesma fonte de dados
 
 ## Evolução possível
 
