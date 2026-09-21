@@ -109,16 +109,16 @@ Após revisar o carrinho, o cliente confirma a compra. O sistema transforma os i
 ┌──────────────────────────┐
 │         CLIENTE          │
 │                          │
-│        Django            │
-│        Requests          │
+│          Django          │
+│         Requests         │
 └────────────┬─────────────┘
              │
              │ HTTP / GraphQL
              ▼
 ┌──────────────────────────┐
-│         BACKEND          │
-│   Node.js + TypeScript   │
+│       CONTAINER          │
 │                          │
+│   Node.js + TypeScript   │
 │      Apollo Server       │
 │        Resolvers         │
 └────────────┬─────────────┘
@@ -126,10 +126,15 @@ Após revisar o carrinho, o cliente confirma a compra. O sistema transforma os i
              │ Prisma ORM
              ▼
 ┌──────────────────────────┐
-│     BANCO DE DADOS       │
+│       CONTAINER          │
 │                          │
 │       PostgreSQL         │
 └──────────────────────────┘
+
+              Docker
+      ─────────────────────
+      Gerenciamento dos
+      ambientes e serviços
 ```
 ---
 
@@ -198,18 +203,24 @@ Permite escalar módulos específicos individualmente.
 
 ## Infraestrutura
 
-### AWS EC2
+### AWS EC2 + Docker
 
 - **AWS:** Provedor Cloud.
 - **EC2:** Máquina virtual alocada.
-- **Conteúdo:** Aplicação Node.js + Banco PostgreSQL.
+- **Docker:** Containerização dos serviços.
+- **Conteúdo:** Aplicação Node.js + PostgreSQL em containers.
 
 **Servidor EC2**
 
-Backend Node.js
+↓
 
-PostgreSQL
+**Docker**
 
+├── Backend Node.js + Apollo Server
+
+├── PostgreSQL
+
+└── Demais serviços da aplicação
 ---
 
 # ARMAZENAMENTO
