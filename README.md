@@ -1,179 +1,559 @@
-# ByteBistro
+# SISTEMAS DISTRIBUÍDOS
 
-Sistema de cardápio digital e gerenciamento de pedidos para restaurantes, desenvolvido como projeto acadêmico da disciplina de **Sistemas Distribuídos**.
+## Sistema de Cardápio Digital e Gerenciamento de Pedidos
 
-## Sobre o projeto
+**PROFESSOR**  
+Levi Costa
 
-O ByteBistro é um sistema que centraliza o fluxo de atendimento de um restaurante, permitindo organizar o cardápio, os produtos disponíveis, o carrinho de compras do cliente e o registro dos pedidos em um único fluxo integrado.
+**INTEGRANTES**  
+Pedro Antonio, Tauan Gomes, Augusto Fagner
 
-## Problema
+---
 
-Restaurantes frequentemente lidam com processos manuais ou pouco integrados para apresentar o cardápio, registrar pedidos e organizar o atendimento. Isso pode gerar retrabalho, falhas de comunicação e dificuldade de organização das informações do estabelecimento. Mais detalhes em [`docs/negocio/problema.md`](docs/negocio/problema.md).
+# O DOMÍNIO
 
-## Escolha do domínio
+## Por que Restaurantes?
 
-O domínio de restaurantes foi escolhido por representar um cenário prático e didático, com um fluxo de dados claro (cardápio → produto → carrinho → pedido), adequado para explorar conceitos de sistemas distribuídos. Mais detalhes em [`docs/negocio/escolha-do-dominio.md`](docs/negocio/escolha-do-dominio.md).
+- **Necessidade Real:** Digitalização de cardápios.
+- **Fluxo Claro:** Organização exata de pedidos.
+- **Adequação:** Perfeito para sistemas distribuídos.
 
-## Solução
+---
 
-O ByteBistro propõe um sistema onde o cliente visualiza o menu de um restaurante, seleciona produtos, monta um carrinho e finaliza um pedido, com o backend responsável por processar as regras de negócio e persistir as informações.
+# O DESAFIO
 
-## Proposta de valor
+## O que o ByteBistro resolve?
 
-Centralizar em um só sistema o fluxo de cardápio e pedidos, simplificando a organização do restaurante e a experiência do cliente. Mais detalhes em [`docs/negocio/proposta-de-valor.md`](docs/negocio/proposta-de-valor.md).
+### Desorganização
+Cardápios físicos e desatualizados.
 
-## Fluxo principal
+### Atrasos
+Lentidão no registro de pedidos.
 
+### Descentralização
+Dados fragmentados e perdidos.
+
+---
+
+# VISÃO GERAL
+
+## Fluxo do Negócio
+
+**Restaurante → Menu → Produtos → Carrinho → Pedido**
+
+---
+
+# DIFERENCIAL
+
+## Proposta de Valor
+
+### Centralização
+
+- Controle total do fluxo gastronômico.
+- Organização imediata do cardápio.
+- Gestão simplificada de produtos.
+- Integração fluida até o pedido final.
+
+---
+
+# SYSTEM DESIGN — ARQUITETURA PROPOSTA
+
+## Visão Geral da Arquitetura
+
+> **O CLIENTE NÃO ACESSA O BANCO DIRETAMENTE**
+
+**Cliente**  
+*(Python/Tkinter)*
+
+↓ HTTP / GraphQL ↓
+
+**Node.js + TypeScript**
+
+↓  
+
+**Apollo Server + Resolvers**
+
+↓
+
+**Prisma ORM**
+
+↓
+
+**Banco de Dados**
+
+---
+
+# ARQUITETURA
+
+## Modelagem e Responsabilidades
+
+| CLIENTE | BACKEND | BANCO |
+|---|---|---|
+| Exibirá interface gráfica. | Recebe requisições HTTP. | Armazena informações. |
+| Interagirá com usuário. | Processa regras de negócio. | Garante persistência. |
+| Solicitará operações à API. | Valida dados e acessa banco. | Acessado via Prisma ORM. |
+
+---
+
+# PROTOCOLOS
+
+## Comunicação do Sistema
+
+> **GRAPHQL NÃO É BANCO DE DADOS.**
+
+**Cliente**
+
+↓ HTTP ↓
+
+**GraphQL (API)**
+
+↓ JSON ↓
+
+**Backend**
+
+↓ Prisma ↓
+
+**Banco de Dados**
+
+- **HTTP:** Protocolo de transporte.
+- **GraphQL:** Tecnologia da API (Consultas/Mutações).
+- **JSON:** Formato de troca de dados.
+
+---
+
+# ARQUITETURA BACKEND
+
+## Monólito Modular vs Microsserviços
+
+### ARQUITETURA INICIAL
+
+**Monólito Modular**
+
+Aplicação única organizada internamente por módulos.
+
+Separar cliente e backend NÃO cria microsserviços.  
+O backend inteiro roda no mesmo processo.
+
+### PROPOSTA DE EVOLUÇÃO
+
+**Microsserviços**
+
+Serviços independentes, separados por rede.
+
+Permite escalar módulos específicos individualmente.
+
+---
+
+# HOSPEDAGEM
+
+## Infraestrutura
+
+### AWS EC2
+
+- **AWS:** Provedor Cloud.
+- **EC2:** Máquina virtual alocada.
+- **Conteúdo:** Aplicação Node.js + Banco PostgreSQL.
+
+**Servidor EC2**
+
+Backend Node.js
+
+PostgreSQL
+
+---
+
+# ARMAZENAMENTO
+
+## Banco de Dados e Persistência
+
+### PROPOSTA
+
+**PostgreSQL**
+
+Banco de dados relacional em rede.
+
+**Solução:** Permite que múltiplas instâncias EC2 acessem a mesma fonte da verdade.
+
+---
+
+# EVOLUÇÃO DE INFRAESTRUTURA
+
+## Balanceamento de Carga
+
+### PROPOSTA ARQUITETURA
+
+**Usuários**
+
+↓
+
+**Load Balancer (Distribuidor)**
+
+↓
+
+**EC2 1 | EC2 2 | EC2 3**
+
+↓
+
+**Banco de Dados Compartilhado (Nuvem)**
+
+---
+
+# SEGURANÇA
+
+## Controle de Acesso
+
+### Autenticação
+
+**"Quem é você?"**
+
+Verifica a identidade do usuário (ex: login com email e senha).
+
+### Autorização
+
+**"O que você pode fazer?"**
+
+Define as permissões após o login (ex: Cliente vs Gerente).
+
+---
+
+# PROTEÇÃO
+
+## Gestão de Segredos e Tokens
+
+### Senhas
+Nunca armazenadas em texto puro (Hashes).
+
+### Tokens JWT
+Credencial temporária após autenticação.
+
+### Variáveis de Ambiente
+Dados sensíveis fora do código-fonte.
+
+### Regra de Ouro
+
+> **O arquivo .env NUNCA sobe para o GitHub.**
+
+---
+
+# REDE
+
+## Firewall e Segmentação
+
+### INTERNET ABERTA
+
+↓
+
+### Borda / Load Balancer
+
+Apenas HTTP/HTTPS (Portas 80/443)
+
+↓
+
+### API / Backend (AWS Security Group)
+
+Bloqueia conexões diretas da internet. Libera SSH restrito.
+
+↓
+
+### Banco de Dados Privado
+
+Sem acesso externo. Só responde ao Backend.
+
+---
+
+# PRINCÍPIO DE SEGURANÇA
+
+## "Nunca confie no cliente"
+
+### O que NÃO fazer
+
+Cliente envia:
+
+```text
+{ Produto: "X", Preço: 0,01 }
 ```
-Restaurante
-   │
-   ▼
-  Menu
-   │
-   ▼
-Produtos
-   │
-   ▼
-Carrinho
-   │
-   ▼
- Pedido
-```
 
-## Arquitetura atual
+O backend aceita e registra o pedido por 1 centavo. O restaurante toma prejuízo por adulteração.
 
-```
-Python/Tkinter
-      │
-      ▼
- HTTP / GraphQL
-      │
-      ▼
-Node.js + TypeScript
-      │
-      ▼
-  Apollo Server
-      │
-      ▼
-    Prisma
-      │
-      ▼
-    SQLite
-```
+### O fluxo correto
 
-A documentação completa está em [`docs/arquitetura/arquitetura-atual.md`](docs/arquitetura/arquitetura-atual.md).
+**1.** Cliente envia apenas o ID do produto.
 
-## Tecnologias
+**2.** Backend consulta preço real no banco.
 
-| Área | Tecnologia |
-|---|---|
-| Cliente | Python + Tkinter |
-| Comunicação | HTTP + GraphQL |
-| Backend | Node.js + TypeScript |
-| API | Apollo Server |
-| ORM | Prisma |
-| Banco de dados | SQLite |
-| Cloud | AWS EC2 |
-| Versionamento | Git + GitHub |
+**3.** Backend calcula valor oficial.
 
-## Arquitetura
+**4.** Backend registra pedido seguro.
 
-A arquitetura atual do sistema é um **monólito modular**. A documentação detalhada, incluindo propostas de evolução arquitetural, está disponível em:
+---
 
-- [`docs/arquitetura/arquitetura-atual.md`](docs/arquitetura/arquitetura-atual.md)
-- [`docs/arquitetura/arquitetura-futura.md`](docs/arquitetura/arquitetura-futura.md)
-
-## Segurança
-
-A segurança do sistema é um conceito em planejamento e discussão para a disciplina, envolvendo:
-
-- Autenticação
-- Autorização
-- Secrets
-- Tokens
-- Firewall
-- Security Group
-- Segmentação de rede
-- Princípio de nunca confiar no cliente
-
-> Esses itens representam conceitos planejados e discutidos academicamente. Nem todos estão implementados na versão atual do sistema.
+# CAPACIDADE
 
 ## Escalabilidade
 
-Os seguintes conceitos fazem parte da evolução arquitetural planejada para o projeto, e não da implementação atual:
+Capacidade do sistema de suportar aumento de usuários sem degradação.
 
-- Escalabilidade vertical
-- Escalabilidade horizontal
+### Vertical (Scale Up)
+
+Aumentar RAM/CPU da mesma máquina.
+
+### Horizontal (Scale Out)
+
+Adicionar novas máquinas lado a lado.
+
+---
+
+# EVOLUÇÃO
+
+## Gerenciamento de Tráfego Automático
+
+### PROPOSTA DE ARQUITETURA
+
+**Load Balancer**
+
+Distribui requisições uniformemente entre instâncias, evitando sobrecarga em um único nó.
+
+### Auto Scaling
+
+**Pico de acesso?** Cria novas EC2.
+
+**Baixo acesso?** Desliga EC2 para economizar.
+
+---
+
+# ANÁLISE CRÍTICA
+
+## A barreira da Escalabilidade
+
+### PROPOSTA
+
+**LB + EC2s + PostgreSQL**
+
+Desacoplar o banco para a rede. Múltiplas instâncias compartilham a mesma base de dados real.
+
+---
+
+# RESILIÊNCIA
+
+## Tolerância a Falhas
+
+Capacidade do sistema operar ou degradar graciosamente quando componentes quebram.
+
+### Instância Cai
+Tráfego redirecionado a nós saudáveis.
+
+### Falha de Conexão
+Tentar reconectar automaticamente.
+
+### Timeout
+Cancelar e notifica o usuário.
+
+---
+
+# PADRÕES DE RESILIÊNCIA
+
+## Recuperação e Proteção
+
+### Retry (Tentar Novamente)
+
+Repetir uma operação que falhou por problema de rede passageiro antes de acusar erro final.
+
+### Circuit Breaker (Disjuntor)
+
+Cortar chamadas para um serviço já caído para não sobrecarregá-lo e falhar rápido (Fail Fast).
+
+---
+
+# PROCESSAMENTO ASSÍNCRONO
+
+## Filas de Mensagens e DLQ
+
+### PROPOSTA EVOLUTIVA
+
+A DLQ guarda tarefas que falharam repetidamente para análise manual.
+
+**API Recebe Pedido**
+
+↓
+
+**Fila (Queue)**
+
+↓
+
+**Processamento**
+
+↓
+
+**Falha Crítica?**
+
+↓
+
+**DLQ (Dead Letter Queue)**
+
+---
+
+# CONTINUIDADE DO NEGÓCIO
+
+## Prevenção de Desastres
+
+### Backup
+
+Cópia regular dos dados.
+
+### Estratégia exige:
+
+- Frequência (diário/hora).
+- Local de armazenamento.
+- Como recriar infraestrutura (EC2s).
+- Como restaurar backup via script.
+
+### Disaster Recovery
+
+Reconstrução total pós-falha.
+
+**Estratégia exige:**
+
+- Frequência (diário/hora).
+- Local de armazenamento.
+- Como recriar infraestrutura (EC2s).
+- Como restaurar backup via script.
+
+---
+
+# NOMES E ENDEREÇOS
+
+## DNS: O mapa da internet
+
+DNS traduz nomes fáceis em endereços IP. Ele não hospeda o site, apenas direciona o tráfego.
+
+**api.bytebistro.com**
+
+Domínio/Subdomínio → Resolução
+
+**54.232.10.15**
+
+Endereço IP AWS
+
+---
+
+# FLUXO DE REDE
+
+## O Caminho da Requisição
+
+> * Load Balancer e cluster EC2 marcam proposta futura.
+
+**Usuário → DNS → Load Balancer* → AWS EC2 → Node.js → Banco**
+
+---
+
+# ORGANIZAÇÃO DO TRABALHO
+
+## Divisão de Responsabilidades
+
+**Todos:** responsáveis pela documentação do projeto, organização e controle de versão no GitHub, integração entre as partes do sistema e definição do System Design.
+
+### Pedro Antonio
+
+- Desenvolvimento da interface do cliente
+- Implementação da interface em Python/Tkinter
+- Construção das telas e fluxo de interação
+- Integração da interface com a API
+- Participação na definição da experiência do usuário
+
+### Tauan Gomes
+
+- Integração entre Front-end e Back-end
+- Implementação e integração da API GraphQL
+- Desenvolvimento das regras de comunicação do sistema
+- Autenticação e autorização
+- Implementação das estratégias de segurança
+
+### Augusto Fagner
+
+- Desenvolvimento do Back-end em Node.js + TypeScript
+- Implementação das regras de negócio
+- Estruturação da camada de acesso aos dados
+- Integração com Prisma e banco de dados
+- Organização da arquitetura do servidor
+
+---
+
+# CONTROLE DE VERSÃO
+
+## Git & GitHub
+
+Repositório utilizado para estruturar tecnologias base. Implementação em progresso contínuo.
+
+https://github.com/pedrom0ta/ByteBistro
+
+---
+
+# ROADMAP
+
+## Realidade vs. Proposta de Evolução
+
+### Implementado
+
+- Repositório estruturado no Git
+- Organização inicial do projeto
+- Definição da arquitetura
+- Definição das tecnologias
+- Monólito Modular
+- Python + Tkinter
+- Node.js + Apollo + GraphQL
+- Prisma + Banco de Dados
+- Integração Cliente ↔ Backend
+
+### Evolução Proposta
+
+- Segurança e autenticação
+- AWS / EC2
 - Load Balancer
 - Auto Scaling
-- PostgreSQL (banco compartilhado)
-
-## Resiliência
-
-Da mesma forma, os conceitos abaixo são tratados como evolução futura do sistema:
-
-- Retry
-- Circuit Breaker
-- Filas
-- DLQ (Dead Letter Queue)
-- Backup
+- PostgreSQL
+- Filas / DLQ
+- Resiliência
 - Disaster Recovery
+- Microsserviços
 
-## DNS
+---
 
-Conceitos relacionados a nomes e roteamento na internet, discutidos como parte da evolução de infraestrutura do projeto:
+# Síntese do Projeto
 
-- Domínio
-- Subdomínio
-- Registros DNS
-- Resolução de nomes
-- Roteamento
+### Problema
 
-## Status do projeto
+Digitalização de fluxos em restaurantes.
 
-🟡 **Em desenvolvimento**
+### Solução
 
-O projeto encontra-se atualmente em fase de definição, organização da estrutura do repositório e desenvolvimento inicial.
+Plataforma centralizada Cliente-Servidor.
 
-## Organização do GitHub
+### Arquitetura
 
-O repositório utiliza, neste momento, a branch:
+Monólito Modular escalável no futuro.
 
-- `main` — branch principal do projeto
+### Comunicação
 
-Conforme o desenvolvimento avançar, será adotado o seguinte modelo:
+HTTP e GraphQL blindando o banco.
 
-- `develop` — branch de integração do desenvolvimento
-- Branches de funcionalidade, criadas conforme a necessidade:
-  - `feature/client`
-  - `feature/backend`
-  - `feature/database`
-  - `feature/infrastructure`
-  - `feature/documentation`
+### Segurança
 
-Essas branches de funcionalidade serão utilizadas progressivamente, à medida que cada frente do projeto for implementada.
+Validação no backend; rede segmentada.
 
-## Estrutura do repositório
+### Escala
 
-```
-ByteBistro/
-├── README.md
-├── .gitignore
-├── LICENSE
-├── docs/
-│   ├── arquitetura/
-│   ├── negocio/
-│   ├── requisitos/
-│   ├── diagramas/
-│   └── apresentacao/
-├── backend/
-├── client/
-├── database/
-└── infrastructure/
-```
+De instância única para Load Balancer.
 
-## Equipe
+### Resiliência
 
-- Pedro Antonio
-- Tauan Gomes
-- Augusto Fagner
+Planejamento de Retry, Circuit Breaker e DLQ.
+
+### Domínio
+
+Sistemas Distribuídos aplicados à Gastronomia.
+
+---
+
+# Obrigado!
+
+## Perguntas?
