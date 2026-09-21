@@ -85,7 +85,7 @@ Dados fragmentados e perdidos.
 
 ## Diagrama Conceitual
 
-
+```text
 ┌─────────────────────┐
 │       CLIENTE       │
 │    Python/Tkinter   │
@@ -108,7 +108,7 @@ Dados fragmentados e perdidos.
 │                     │
 │     PostgreSQL      │
 └─────────────────────┘
-
+```
 ---
 
 # ARQUITETURA
