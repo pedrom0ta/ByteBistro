@@ -2,7 +2,7 @@
 
 ## Banco de dados atual
 
-- **SQLite**
+- **PostgreSQL**
 
 ## ORM
 
