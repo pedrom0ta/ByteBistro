@@ -83,13 +83,13 @@ Após revisar o carrinho, o cliente confirma a compra. O sistema transforma os i
 > **O CLIENTE NÃO ACESSA O BANCO DIRETAMENTE**
 
 **Cliente**  
-*(Python/Tkinter)*
+*(Django + Requests)*
 
 ↓ HTTP / GraphQL ↓
 
 **Node.js + TypeScript**
 
-↓  
+↓
 
 **Apollo Server + Resolvers**
 
@@ -106,28 +106,30 @@ Após revisar o carrinho, o cliente confirma a compra. O sistema transforma os i
 ## Diagrama Conceitual
 
 ```text
-┌─────────────────────┐
-│       CLIENTE       │
-│    Python/Tkinter   │
-└──────────┬──────────┘
-           │
-           │ HTTP / GraphQL
-           ▼
-┌─────────────────────┐
-│      BACKEND        │
-│ Node.js + TypeScript│
-│                     │
-│ Apollo Server       │
-│ Resolvers           │
-└──────────┬──────────┘
-           │
-           │ Prisma ORM
-           ▼
-┌─────────────────────┐
-│     BANCO DE DADOS  │
-│                     │
-│     PostgreSQL      │
-└─────────────────────┘
+┌──────────────────────────┐
+│         CLIENTE          │
+│                          │
+│        Django            │
+│        Requests          │
+└────────────┬─────────────┘
+             │
+             │ HTTP / GraphQL
+             ▼
+┌──────────────────────────┐
+│         BACKEND          │
+│   Node.js + TypeScript   │
+│                          │
+│      Apollo Server       │
+│        Resolvers         │
+└────────────┬─────────────┘
+             │
+             │ Prisma ORM
+             ▼
+┌──────────────────────────┐
+│     BANCO DE DADOS       │
+│                          │
+│       PostgreSQL         │
+└──────────────────────────┘
 ```
 ---
 
