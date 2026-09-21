@@ -580,6 +580,32 @@ Planejamento de Retry, Circuit Breaker e DLQ.
 Sistemas Distribuídos aplicados à Gastronomia.
 
 ---
+# CRONOGRAMA DE ENTREGA
+
+## Etapas do Projeto
+
+| Etapa | Atividade | Status |
+|---|---|---|
+| **Etapa 1** | Definição do domínio, problema e proposta do ByteBistro | ✅ Concluído |
+| **Etapa 2** | Definição da arquitetura e tecnologias | ✅ Concluído |
+| **Etapa 3** | Estruturação do repositório e organização inicial do projeto | ✅ Concluído |
+| **Etapa 4** | Desenvolvimento da interface do cliente com Python/Tkinter | 🔄 Em desenvolvimento |
+| **Etapa 5** | Desenvolvimento do Backend com Node.js + TypeScript | 🔄 Em desenvolvimento |
+| **Etapa 6** | Implementação da API GraphQL com Apollo Server e Resolvers | ⏳ Planejado |
+| **Etapa 7** | Integração Prisma + PostgreSQL | ⏳ Planejado |
+| **Etapa 8** | Integração Cliente ↔ Backend | ⏳ Planejado |
+| **Etapa 9** | Implementação de autenticação, autorização e segurança | ⏳ Planejado |
+| **Etapa 10** | Testes e validação do sistema | ⏳ Planejado |
+| **Etapa 11** | Documentação e ajustes finais | ⏳ Planejado |
+| **Etapa 12** | Entrega e apresentação do projeto | ⏳ Planejado |
+
+### Legenda
+
+- ✅ **Concluído**
+- 🔄 **Em desenvolvimento**
+- ⏳ **Planejado**
+
+---
 
 # Obrigado!
 
