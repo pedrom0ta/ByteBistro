@@ -41,6 +41,26 @@ Dados fragmentados e perdidos.
 
 **Restaurante → Menu → Produtos → Carrinho → Pedido**
 
+### 1. Restaurante
+
+É a base do sistema. O restaurante representa o estabelecimento que utiliza o ByteBistro para organizar seu cardápio e gerenciar seus pedidos.
+
+### 2. Menu
+
+O restaurante possui um menu, que organiza a apresentação dos produtos disponíveis para os clientes.
+
+### 3. Produtos
+
+Dentro do menu ficam os produtos oferecidos pelo restaurante, contendo informações como nome, descrição e preço.
+
+### 4. Carrinho
+
+O cliente seleciona os produtos que deseja e os adiciona ao carrinho. Nessa etapa, os itens escolhidos são organizados antes da finalização.
+
+### 5. Pedido
+
+Após revisar o carrinho, o cliente confirma a compra. O sistema transforma os itens selecionados em um pedido, que é registrado no Backend e armazenado no banco de dados.
+
 ---
 
 # DIFERENCIAL
