@@ -576,7 +576,7 @@ https://github.com/pedrom0ta/ByteBistro
 
 ### Evolução Proposta
 
-- Python + Tkinter
+- Python + Django
 - Node.js + Apollo + GraphQL
 - Prisma + Banco de Dados
 - Integração Cliente ↔ Backend
@@ -635,7 +635,7 @@ Sistemas Distribuídos aplicados à Gastronomia.
 | **Etapa 1** | Definição do domínio, problema e proposta do ByteBistro | ✅ Concluído |
 | **Etapa 2** | Definição da arquitetura e tecnologias | ✅ Concluído |
 | **Etapa 3** | Estruturação do repositório e organização inicial do projeto | ✅ Concluído |
-| **Etapa 4** | Desenvolvimento da interface do cliente com Python/Tkinter | 🔄 Em desenvolvimento |
+| **Etapa 4** | Desenvolvimento da interface do cliente com Python/Django | 🔄 Em desenvolvimento |
 | **Etapa 5** | Desenvolvimento do Backend com Node.js + TypeScript | 🔄 Em desenvolvimento |
 | **Etapa 6** | Implementação da API GraphQL com Apollo Server e Resolvers | ⏳ Planejado |
 | **Etapa 7** | Integração Prisma + PostgreSQL | ⏳ Planejado |
