@@ -352,15 +352,28 @@ O backend aceita e registra o pedido por 1 centavo. O restaurante toma prejuízo
 
 ## Escalabilidade
 
-Capacidade do sistema de suportar aumento de usuários sem degradação.
-
-### Vertical (Scale Up)
-
-Aumentar RAM/CPU da mesma máquina.
+Capacidade do sistema de suportar o aumento de usuários e requisições sem degradação significativa do serviço.
 
 ### Horizontal (Scale Out)
 
-Adicionar novas máquinas lado a lado.
+O ByteBistro utilizará **escalabilidade horizontal**, adicionando novas instâncias da aplicação conforme a demanda aumenta.
+
+Em vez de aumentar os recursos de uma única máquina, novas instâncias são adicionadas para dividir a carga entre os servidores.
+
+```text
+                 Usuários
+                     │
+                     ▼
+              Load Balancer
+                     │
+          ┌──────────┼──────────┐
+          ▼          ▼          ▼
+       EC2 1       EC2 2      EC2 3
+          │          │          │
+          └──────────┼──────────┘
+                     ▼
+             Banco PostgreSQL.
+```
 
 ---
 
