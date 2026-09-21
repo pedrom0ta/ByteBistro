@@ -499,13 +499,13 @@ https://github.com/pedrom0ta/ByteBistro
 - Definição da arquitetura
 - Definição das tecnologias
 - Monólito Modular
+
+### Evolução Proposta
+
 - Python + Tkinter
 - Node.js + Apollo + GraphQL
 - Prisma + Banco de Dados
 - Integração Cliente ↔ Backend
-
-### Evolução Proposta
-
 - Segurança e autenticação
 - AWS / EC2
 - Load Balancer
@@ -515,7 +515,6 @@ https://github.com/pedrom0ta/ByteBistro
 - Resiliência
 - Disaster Recovery
 - Microsserviços
-
 ---
 
 # Síntese do Projeto
