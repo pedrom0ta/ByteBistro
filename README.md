@@ -529,7 +529,7 @@ Endereço IP AWS
 ### Pedro Antonio
 
 - Desenvolvimento da interface do cliente
-- Implementação da interface em Python/Tkinter
+- Implementação da interface em Python/Django
 - Construção das telas e fluxo de interação
 - Integração da interface com a API
 - Participação na definição da experiência do usuário
