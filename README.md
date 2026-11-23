@@ -506,32 +506,21 @@ https://github.com/pedrom0ta/ByteBistro
 
 ---
 
-# ROADMAP
+# ROTEIRO
 
-## Realidade vs. Proposta de Evolução
+## Entrega acadêmica
 
-### Implementado
+- Demonstração local com cardápio, carrinho, pedidos, acompanhamento e painel em Django e SQLite.
+- System Design escrito, diagramas, infraestrutura AWS definida em Terraform e roteiro de apresentação.
 
-- Repositório estruturado no Git
-- Organização inicial do projeto
-- Definição da arquitetura
-- Definição das tecnologias
-- Demonstração web em Django com SQLite, incluindo vitrine e painel
+## Evolução para produção
 
-### Evolução Proposta
+- Implementar o backend Node.js e TypeScript, disponibilizar a API Apollo/GraphQL e integrar o cliente Django.
+- Migrar a persistência do domínio para Prisma e PostgreSQL e implementar mensageria com workers.
+- Provisionar a infraestrutura AWS, validar a integração em homologação e publicar a aplicação.
 
-- Monólito modular de domínio em Node.js
-- Node.js + Apollo + GraphQL
-- Prisma + Banco de Dados
-- Integração Cliente ↔ Backend
-- Segurança e autenticação
-- Load Balancer
-- Auto Scaling
-- PostgreSQL
-- Filas / DLQ
-- Resiliência
-- Disaster Recovery
-- Microsserviços
+[Roteiro de apresentação](docs/apresentacao/README.md)
+
 ---
 
 # Síntese do Projeto
@@ -571,28 +560,22 @@ Sistemas Distribuídos aplicados à Gastronomia.
 ---
 # CRONOGRAMA DE ENTREGA
 
-## Etapas do Projeto
+## Etapas da entrega acadêmica
 
 | Etapa | Atividade | Status |
-|---|---|---|
-| **Etapa 1** | Definição do domínio, problema e proposta do ByteBistro | ✅ Concluído |
-| **Etapa 2** | Definição da arquitetura e tecnologias | ✅ Concluído |
-| **Etapa 3** | Estruturação do repositório e organização inicial do projeto | ✅ Concluído |
-| **Etapa 4** | Desenvolvimento da interface do cliente com Python/Django | ✅ Demonstração local implementada |
-| **Etapa 5** | Desenvolvimento do Backend com Node.js + TypeScript | 🔄 Em desenvolvimento |
-| **Etapa 6** | Implementação da API GraphQL com Apollo Server e Resolvers | ⏳ Planejado |
-| **Etapa 7** | Integração Prisma + PostgreSQL | ⏳ Planejado |
-| **Etapa 8** | Integração Cliente ↔ Backend | ⏳ Planejado |
-| **Etapa 9** | Implementação de autenticação, autorização e segurança | ⏳ Planejado |
-| **Etapa 10** | Testes e validação do sistema | ⏳ Planejado |
-| **Etapa 11** | Documentação e ajustes finais | ⏳ Planejado |
-| **Etapa 12** | Entrega e apresentação do projeto | ⏳ Planejado |
-
-### Legenda
-
-- ✅ **Concluído**
-- 🔄 **Em desenvolvimento**
-- ⏳ **Planejado**
+| --- | --- | --- |
+| **Etapa 1** | Definição do domínio, problema e proposta do ByteBistro | ✅ Concluída |
+| **Etapa 2** | Definição da arquitetura e das tecnologias | ✅ Concluída |
+| **Etapa 3** | Estruturação do repositório e organização inicial | ✅ Concluída |
+| **Etapa 4** | Implementação da interface web e do painel em Django | ✅ Concluída |
+| **Etapa 5** | Implementação das regras de carrinho e pedidos em Django | ✅ Concluída |
+| **Etapa 6** | Implementação das rotas web e da consulta de status | ✅ Concluída |
+| **Etapa 7** | Persistência local com ORM Django e SQLite | ✅ Concluída |
+| **Etapa 8** | Integração da vitrine com o checkout e o painel | ✅ Concluída |
+| **Etapa 9** | Autenticação, sessões e controle de acesso na demonstração | ✅ Concluída |
+| **Etapa 10** | Validação da demonstração com a suíte de testes Django | ✅ Concluída |
+| **Etapa 11** | Documentação do System Design, diagrama AWS e preparação do Terraform | ✅ Concluída |
+| **Etapa 12** | Preparação do roteiro de apresentação da entrega acadêmica | ✅ Concluída |
 
 ---
 
