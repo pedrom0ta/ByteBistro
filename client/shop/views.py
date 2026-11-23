@@ -2,10 +2,12 @@ import re
 import time
 from uuid import UUID
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.conf import settings
 from django.views.decorators.http import require_POST
+from .graphql import GraphQLUnavailable, order_status
 from . import services, sms
 from .catalog import normalize
 from . import storefront
@@ -178,6 +180,18 @@ def history(request):
     return page(request, "history", orders=services.orders(request.session))
 
 def tracking(request, pk, view="track"):
+    if view == "status" and getattr(settings, "BYTEBISTRO_GRAPHQL_URL", None):
+        try:
+            status = order_status(pk, services.owner(request.session), request.session.get("customer"))
+        except GraphQLUnavailable:
+            response = JsonResponse({"error": "Acompanhamento temporariamente indisponível."}, status=503)
+        else:
+            if status is None:
+                raise Http404
+            response = JsonResponse(status)
+        response["Cache-Control"] = "no-store"
+        return response
+
     order = get_object_or_404(services.orders(request.session), pk=pk)
     if view == "status":
         response = JsonResponse(dict(stage=order.progress, status=order.status, finished=order.finished, reason=order.reason))

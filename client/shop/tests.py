@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from .models import Customer, Order
+from .models import Customer, Order, OrderOutbox
 from .services import DELIVERY_FEE
 from .models import MenuProduct
 
@@ -70,6 +70,26 @@ class Flows(TestCase):
         self.assertRedirects(self.client.get(url), url+"conclusao/")
         self.assertContains(self.client.get(url+"conclusao/"), "Seu pedido está pronto!")
         self.assertContains(self.client.get(url+"?detalhes=1"), "Detalhes do pedido")
+
+    @override_settings(BYTEBISTRO_OUTBOX_ENABLED=True)
+    def test_checkout_retries_keep_one_outbox_event(self):
+        self.add()
+        data = {"table": "4", "token": self.client.session["token"]}
+        first = self.client.post("/restaurante/", data)
+        retry = self.client.post("/restaurante/", data)
+        self.assertEqual(first.url, retry.url)
+        self.assertEqual(OrderOutbox.objects.get().order_id, Order.objects.get().pk)
+
+    @override_settings(BYTEBISTRO_GRAPHQL_URL="http://api:4000/graphql")
+    def test_status_queries_internal_graphql_with_session_identity(self):
+        self.add()
+        response = self.client.post("/restaurante/", {"table": "4", "token": self.client.session["token"]})
+        payload = {"stage": 0, "status": "Pedido recebido", "finished": False, "reason": ""}
+        with patch("shop.views.order_status", return_value=payload) as lookup:
+            status = self.client.get(response.url + "status/")
+        self.assertEqual(status.json(), payload)
+        self.assertEqual(status.headers["Cache-Control"], "no-store")
+        lookup.assert_called_once_with(Order.objects.get().pk, self.client.session["owner"], None)
 
     def test_new_delivery(self):
         self.add()

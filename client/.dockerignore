@@ -1,0 +1,15 @@
+**
+!Dockerfile
+!requirements.txt
+!requirements-aws.txt
+!config/
+!config/**
+!shop/
+!shop/**
+!static/
+!static/**
+!templates/
+!templates/**
+!manage.py
+**/__pycache__/
+**/*.pyc

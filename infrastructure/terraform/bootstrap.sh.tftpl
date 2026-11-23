@@ -1,0 +1,43 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+if ! command -v docker >/dev/null; then
+    dnf install -y docker
+fi
+systemctl enable --now docker
+docker network create bytebistro
+install -d -m 0700 /run/bytebistro
+trap 'rm -f /run/bytebistro/*.env' EXIT
+aws --region '${region}' ecr get-login-password | docker login --username AWS --password-stdin '${registry}'
+
+%{ for service in service_order ~}
+aws --region '${region}' secretsmanager get-secret-value --secret-id '${services[service].secret}' \
+  --query SecretString --output text | python3 -c '
+import json, re, sys
+for key, value in json.load(sys.stdin).items():
+    if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", key) or not isinstance(value, str) or any(c in value for c in "\r\n\0"):
+        raise ValueError("Expected a flat environment object with single-line strings")
+    print(key + "=" + value)
+' > /run/bytebistro/${service}.env
+
+docker pull '${services[service].image}'
+docker run --detach --restart unless-stopped --name '${service}' --network bytebistro \
+  --env-file /run/bytebistro/${service}.env \
+  --env AWS_REGION='${region}' \
+  --log-driver awslogs --log-opt awslogs-region='${region}' \
+  --log-opt awslogs-group='${services[service].log_group}' \
+  --log-opt awslogs-stream="$(hostname)/${service}" \
+%{ if service == "web" ~}
+  --publish 8000:8000 \
+  --env BYTEBISTRO_PUBLIC_HOST='${domain}' \
+  --env BYTEBISTRO_ORIGIN_HOST='${origin_domain}' \
+  --env BYTEBISTRO_GRAPHQL_URL='http://api:4000/graphql' \
+  --env BYTEBISTRO_OUTBOX_ENABLED='1' \
+%{ endif ~}
+%{ if service == "worker" ~}
+  --env BYTEBISTRO_QUEUE_URL='${queue_url}' \
+  --env BYTEBISTRO_NOTIFICATION_TOPIC_ARN='${topic_arn}' \
+%{ endif ~}
+  '${services[service].image}'
+%{ endfor ~}
+docker logout '${registry}'

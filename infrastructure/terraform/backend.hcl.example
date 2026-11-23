@@ -1,0 +1,5 @@
+bucket = "replace-with-existing-state-bucket"
+key = "bytebistro/production/terraform.tfstate"
+region = "us-east-1"
+encrypt = true
+use_lockfile = true

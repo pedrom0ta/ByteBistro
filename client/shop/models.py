@@ -70,6 +70,21 @@ class OrderEvent(models.Model):
                 "paid": "Recebimento registrado"}[self.action]
 
 
+class OrderOutbox(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True)
+    notified_at = models.DateTimeField(null=True)
+    lease_until = models.DateTimeField(null=True)
+    lease_token = models.UUIDField(null=True)
+    notify_lease_until = models.DateTimeField(null=True)
+    notify_lease_token = models.UUIDField(null=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["sent_at", "created_at"])]
+
+
 class Category(models.Model):
     name = models.CharField("Nome", max_length=80, unique=True)
     position = models.PositiveIntegerField("Ordem", default=0)

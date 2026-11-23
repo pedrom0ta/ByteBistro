@@ -230,4 +230,4 @@ A proposta de infraestrutura AWS amplia essa arquitetura com balanceamento de ca
 
 O resultado esperado é uma aplicação preparada para evoluir de um ambiente de desenvolvimento para uma implantação mais robusta, segura e escalável.
 
-**Estado de implementação.** O backend Node.js, o adaptador Requests, GraphQL, Prisma, PostgreSQL, Docker e os recursos AWS descritos neste documento são planejados.
+**Estado de implementação.** A implantação em preparação usa Django para as regras de negócio, Apollo/Prisma para consultar o status e um worker com outbox, SQS e SNS. O Django chama a API interna com o cliente HTTP da biblioteca padrão Python. O desenho acima também descreve a evolução para migrar regras de negócio ao backend Node.js. [Guia da infraestrutura](../../infrastructure/terraform/README.md)

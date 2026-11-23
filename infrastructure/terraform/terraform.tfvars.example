@@ -1,0 +1,7 @@
+region = "us-east-1"
+
+# Leave both unset to use the CloudFront HTTPS hostname.
+# domain = "bytebistro.example.com"
+# hosted_zone_id = "Z_REPLACE_ME"
+
+# runtime = null provisions the base without application instances.

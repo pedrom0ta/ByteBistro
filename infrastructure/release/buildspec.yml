@@ -1,0 +1,9 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${WEB_REPOSITORY%%/*}"
+  build:
+    commands:
+      - bash infrastructure/release/build.sh

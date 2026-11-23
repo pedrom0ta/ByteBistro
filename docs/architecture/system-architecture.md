@@ -5,7 +5,7 @@
 | Estado | Componentes e evidência |
 | --- | --- |
 | Implementado na demonstração | Python e Django, templates HTML, CSS e JavaScript, rotas de vitrine e painel, ORM Django, migrações e SQLite. [Configuração](../../client/config/settings.py) · [Rotas](../../client/config/urls.py) · [Dependências](../../client/requirements.txt) |
-| Em desenvolvimento no cronograma | Backend Node.js e TypeScript. A pasta contém somente a descrição do componente. A avaliação de implementação está limitada ao checkout analisado. [Backend](../../backend/README.md) |
+| Implementado para integração AWS | Apollo/Prisma lê o status dos pedidos. Django mantém as regras de negócio e grava a outbox na mesma transação do pedido. O worker integra SQS e SNS. [Backend](../../backend/README.md) |
 | Proposto | Apollo Server, schema e resolvers GraphQL, integração HTTP a partir do Django, Prisma e PostgreSQL. Docker e GitHub Actions também pertencem ao desenho futuro. [Banco](../../database/README.md) · [Infraestrutura](../../infrastructure/README.md) |
 
 [Fonte Mermaid](diagrams/high-level-architecture.mmd)
@@ -30,7 +30,7 @@ O modelo relacional atual inclui clientes, pedidos, eventos, categorias, produto
 ## Versões, configuração e divergências
 
 - O manifesto declara Django `>=5.0.9,<6.0`. A suíte foi validada com Python 3.11 e Django 5.0.9. O repositório não fixa a versão do Python ou do SQLite.
-- O código versionado é Python, HTML, CSS e JavaScript de navegador. As pastas de backend, banco e infraestrutura contêm documentação. A inspeção não encontrou manifestos Node, schema Prisma, Dockerfiles, Compose ou workflows registrados.
+- O repositório contém Django, serviços TypeScript, schema Prisma para consulta e processamento da outbox, Dockerfiles e infraestrutura Terraform. [Infraestrutura AWS](../../infrastructure/terraform/README.md)
 - O desenho anterior citava Tkinter, Requests, SQLite via Prisma. A interface atual usa Django, o navegador chama o próprio Django e a persistência usa o ORM Django. O adaptador HTTP e os runtimes da proposta ainda precisam de versões e configuração.
 - O WSGI e as rotas usam `config.settings`. O [guia local](../../client/README.md) descreve a configuração da demonstração.
 

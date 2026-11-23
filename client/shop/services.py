@@ -1,7 +1,8 @@
 import uuid
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from .models import Customer, Order, OrderEvent
+from .models import Customer, Order, OrderEvent, OrderOutbox
 from . import storefront
 
 DELIVERY_FEE = 690
@@ -86,6 +87,8 @@ def confirm(session, token, mode, destination, payment, notes):
             # Insert first so concurrent SQLite writers serialize on the unique key.
             order = Order.objects.create(**fields)
             OrderEvent.objects.create(order=order, action="received")
+            if getattr(settings, "BYTEBISTRO_OUTBOX_ENABLED", False):
+                OrderOutbox.objects.create(order=order)
             if mode == "delivery":
                 account = customer(session)
                 if destination not in account.addresses:

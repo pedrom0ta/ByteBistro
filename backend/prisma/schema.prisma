@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// These tables are managed by the Django migrations.
+model Order {
+  id         String  @id @db.Uuid
+  owner      String
+  customerId BigInt? @map("customer_id")
+  mode       String
+  stage      Int
+  reason     String
+
+  @@map("shop_order")
+}
+
+model Outbox {
+  id         String    @id @db.Uuid
+  orderId    String    @map("order_id") @db.Uuid
+  createdAt  DateTime  @map("created_at") @db.Timestamptz(6)
+  sentAt     DateTime? @map("sent_at") @db.Timestamptz(6)
+  notifiedAt DateTime? @map("notified_at") @db.Timestamptz(6)
+  leaseUntil DateTime? @map("lease_until") @db.Timestamptz(6)
+  leaseToken String?   @map("lease_token") @db.Uuid
+  notifyLeaseUntil DateTime? @map("notify_lease_until") @db.Timestamptz(6)
+  notifyLeaseToken String?   @map("notify_lease_token") @db.Uuid
+
+  @@map("shop_orderoutbox")
+}

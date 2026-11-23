@@ -1,0 +1,28 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+export AWS_REGION='${region}'
+export DB_HOST='${db_host}'
+export DB_ADMIN_SECRET='${admin_secret}'
+export WEB_SECRET='${web_secret}'
+export API_SECRET='${api_secret}'
+export WORKER_SECRET='${worker_secret}'
+
+finish() {
+    result=$?
+    trap - EXIT
+    printf '{"exit_code":%d}\n' "$result" >/tmp/bytebistro-migration-result.json
+    aws s3 cp /tmp/bytebistro-migration-result.json 's3://${bucket}/releases/migrations/${release}.json' --only-show-errors || true
+    shutdown -h now
+    exit "$result"
+}
+trap finish EXIT
+
+dnf install -y python3.12 python3.12-pip unzip
+mkdir -p /opt/bytebistro-migrate
+cd /opt/bytebistro-migrate
+aws s3 cp 's3://${bucket}/release-source/${release}.zip' /tmp/source.zip --only-show-errors
+unzip -q /tmp/source.zip
+python3.12 -m venv .venv
+.venv/bin/pip install -q -r client/requirements-aws.txt
+.venv/bin/python infrastructure/release/migrate.py
