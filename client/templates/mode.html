@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block title %}Modalidade{% endblock %}{% block content %}
+<div class="narrow">
+<h1>Como deseja receber seu pedido?</h1>{% if restaurant.accepting %}<a class="modecard" href="{% url 'restaurant' %}">
+{% include "components/i.html" with i="book" %}
+<h2>Consumir no restaurante</h2>
+<p>Faça seu pedido e consuma no estabelecimento.</p></a>{% if restaurant.delivery %}<a class="modecard" href="{% url 'delivery' %}">
+{% include "components/i.html" with i="bike" %}
+<h2>Receber por delivery</h2>
+<p>Receba seu pedido no conforto da sua casa.</p></a>{% endif %}{% else %}<p>O restaurante pausou o recebimento de pedidos.</p>{% endif %}
+</div>
+{% endblock %}

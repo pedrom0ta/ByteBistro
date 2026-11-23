@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block title %}Checkout{% endblock %}{% block content %}
+<h1>
+{% if delivery %}Checkout delivery{% else %}Pedido no restaurante{% endif %}</h1>
+<form method="post" class="split">{% csrf_token %}<input type="hidden" name="token" value="{{ token }}">
+<div>
+{% if delivery %}
+<fieldset class="panel">
+<legend>Endereço de entrega</legend>
+{% if saved %}<label>Selecionar endereço<select name="address" data-address>
+{% for a in saved %}<option value="{{ forloop.counter0 }}" {% if selected == forloop.counter0|stringformat:"s" %}selected{% endif %}>{{ a.street }}, {{ a.number }} · {{ a.city }}</option>
+{% endfor %}<option value="new" {% if selected == "new" %}selected{% endif %}>Cadastrar outro endereço</option></select>
+</label>
+{% else %}<input type="hidden" name="address" value="new">
+{% endif %}
+<fieldset class="fields" data-address-fields>{{ form.as_p }}</fieldset>
+</fieldset>
+<fieldset class="panel">
+<legend>Forma de pagamento</legend>
+<p>Pagamento na entrega.</p>
+{% for pay in payments %}<label class="checkrow"><input type="radio" name="payment" value="{{ pay }}" required {% if request.POST.payment == pay %}checked{% endif %}>{{ pay }}</label>
+{% endfor %}</fieldset>
+{% else %}
+<fieldset class="panel">
+<legend>Selecione sua mesa</legend>
+<div class="tables choices">
+{% for t in tables %}<label><input type="radio" name="table" value="{{ t.number }}" required>{{ t }}</label>
+{% endfor %}</div>
+</fieldset>
+{% endif %}<label>Observações gerais<textarea name="notes" maxlength="300">{{ request.POST.notes }}</textarea>
+</label>
+</div>
+<aside class="panel">
+<h2>Resumo do pedido</h2>
+{% include "components/lines.html" %}{% include "components/totals.html" %}
+<button class="btn wide">Confirmar pedido</button>
+</aside>
+</form>
+{% endblock %}

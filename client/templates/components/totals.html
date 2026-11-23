@@ -1,0 +1,14 @@
+{% load bistro %}
+<div class="row"><span>Subtotal</span><b>{{ subtotal|brl }}</b>
+</div>
+{% if discount %}
+<div class="row saving"><span>Desconto da promoção</span><b>− {{ discount|brl }}</b>
+</div>
+{% endif %}{% if delivery %}
+<div class="row"><span>Taxa de entrega</span><b>{{ fee|brl }}</b>
+</div>
+{% endif %}
+<div class="row grand"><strong>
+{% if final %}Total do pedido{% else %}Total parcial{% endif %}</strong><strong>
+{% if final %}{{ final|brl }}{% else %}{{ partial|brl }}{% endif %}</strong>
+</div>

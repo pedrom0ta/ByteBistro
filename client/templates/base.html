@@ -1,0 +1,32 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#201d1b"><title>
+{% block title %}Início{% endblock %} · ByteBistro</title><link rel="stylesheet" href="{% static 'css/site.css' %}"><script defer src="{% static 'js/site.js' %}"></script>
+</head>
+<body>
+{% include "components/icons.html" %}
+{% if focus %}
+<header class="focushead">
+<div class="wrap"><a href="{{ back }}" class="iconbtn" aria-label="Voltar">
+{% include "components/i.html" with i="back" %}</a><a href="{% url 'home' %}" class="wordmark"><img src="{% static 'images/logo.webp' %}" alt="ByteBistro"></a>
+</div>
+</header>
+{% else %}
+<header class="top">
+<div class="wrap topinner"><a href="{% url 'home' %}" class="wordmark"><img src="{% static 'images/logo.webp' %}" alt="ByteBistro"></a>
+<nav aria-label="Principal">
+{% include "components/links.html" %}</nav><div class="header-actions">{% include 'components/account_link.html' %}<a class="cartpill" href="{% url 'cart' %}">
+{% include "components/i.html" with i="bag" %} Carrinho <b>{{ count }}</b></a>
+</div>
+</div>
+</header>
+{% endif %}
+<main class="wrap {% if focus %}focused{% endif %}">
+{% for message in messages %}
+<p class="alert" role="alert">{{ message }}</p>
+{% endfor %}{% block content %}{% endblock %}</main>
+{% if not focus %}
+<nav class="bottom" aria-label="Navegação móvel">
+{% include "components/links.html" with mobile=True %}
+</nav>
+{% endif %}</body></html>

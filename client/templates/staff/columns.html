@@ -1,0 +1,29 @@
+{% load bistro %}
+{% if section == 'orders' %}
+<div class="status-tabs" role="tablist" aria-label="Status do pedido">
+  {% for label, orders in board %}
+  <button type="button" role="tab" id="status-{{ forloop.counter }}" aria-controls="lane-{{ forloop.counter }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" tabindex="{% if forloop.first %}0{% else %}-1{% endif %}" data-tab="{{ forloop.counter }}">{{ label }} <span>{{ orders|length }}</span></button>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="{% if section == 'kitchen' %}kitchen{% else %}kanban{% endif %}">
+{% for label, orders in board %}
+<section class="lane" id="lane-{{ forloop.counter }}" data-lane="{{ forloop.counter }}" aria-labelledby="lane-title-{{ forloop.counter }}">
+  <h2 id="lane-title-{{ forloop.counter }}">{{ label }} <span>{{ orders|length }}</span></h2>
+  <div class="lane-body">{% for order in orders %}
+    <article class="ticket {% if order.waiting %}overdue{% endif %}" data-order="{{ order.pk }}" data-number="{{ order.number }}" data-stage="{{ order.stage }}">
+      <div class="ticket-header"><strong>#{{ order.number }}</strong><span class="badge stage-{{ order.stage }}">{{ order.mode|capfirst }}</span></div>
+      <p class="muted">{{ order.created|date:"H:i" }} · há {{ order.created|timesince }}{% if order.waiting %} · Espera prolongada{% endif %}</p>
+      <strong>{% if order.destination.table %}{{ order.destination.label|default:"Mesa" }}{% if not order.destination.label %} {{ order.destination.table }}{% endif %}{% elif section != 'kitchen' %}{{ order.customer.name|default:"Cliente delivery" }}{% endif %}</strong>
+      {% include 'staff/items.html' with order=order %}
+      {% if order.notes %}<p class="note">{{ order.notes }}</p>{% endif %}
+      {% if order.reason %}<p class="note">{{ order.reason }}</p>{% endif %}
+      {% if section != 'kitchen' %}
+        <div class="ticket-total"><span>{{ order.payment }}</span><b>{{ order.total|brl }}</b></div>
+        <a data-order-detail href="{% url 'staff_detail' order.pk %}">Ver detalhes</a>
+      {% endif %}
+      {% include 'staff/actions.html' with buttons=order.buttons %}
+    </article>
+  {% empty %}<p class="empty-state">Nenhum pedido nesta etapa.</p>{% endfor %}</div>
+</section>
+{% endfor %}</div>

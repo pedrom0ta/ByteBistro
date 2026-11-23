@@ -1,0 +1,34 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>{{ title|default:"Equipe" }} · ByteBistro</title>
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<script defer src="{% static 'js/operations.js' %}"></script>
+</head>
+<body>
+{% if nav %}
+<aside class="sidebar">
+  <img src="{% if config.logo %}{{ config.logo }}{% else %}{% static 'images/logo.webp' %}{% endif %}" alt="{{ config.name }}">
+  {% include 'staff/navigation.html' %}
+</aside>
+<dialog class="nav-drawer" id="staff-menu" aria-label="Menu da equipe">
+  <div class="drawer-content">
+    <form method="dialog"><button autofocus>Fechar menu</button></form>
+    {% include 'staff/navigation.html' %}
+  </div>
+</dialog>
+<header class="topbar">
+  <div class="top-identity"><button type="button" class="menu-toggle" data-drawer-open aria-label="Abrir menu da equipe" aria-controls="staff-menu" aria-expanded="false">☰ <span>Menu</span></button><b>{{ config.name }}</b></div>
+  <div class="top-actions">
+    {% if section == 'orders' or section == 'kitchen' %}
+    <button type="button" data-alert-toggle aria-label="Avisos" title="Avisos">🔔 <span data-count>0</span></button>
+    {% endif %}
+    <span class="avatar">{{ request.user.username|slice:":1"|upper }}</span>
+    <span class="employee-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+    <form method="post" action="{% url 'staff_logout' %}">{% csrf_token %}<button type="submit">Sair</button></form>
+  </div>
+</header>
+{% endif %}
+<main class="{% if nav %}workspace{% else %}login{% endif %}">
+{% for message in messages %}<p class="flash {{ message.tags }}" role="status">{{ message }}</p>{% endfor %}
+{% block content %}{% endblock %}
+</main></body></html>

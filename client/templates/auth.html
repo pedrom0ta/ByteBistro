@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block title %}Identificação{% endblock %}{% block content %}
+<div class="narrow panel">
+<form method="post">{% csrf_token %}{% if step == "phone" %}
+<h1>Entrar ou criar conta</h1>
+<p>Informe seu número de celular para continuar.</p>
+<label>Celular com DDD<input type="tel" name="phone" inputmode="numeric" autocomplete="tel-national" placeholder="(75) 99999-9999" maxlength="15" required>
+</label>
+<p class="hint">A verificação usa um código SMS. Nesta demonstração, consulte o código no terminal local do Django.</p>
+<button class="btn wide">Continuar</button>{% elif step == "verify" %}
+<h1>Confirme seu número</h1>
+<p>Código de verificação gerado para o celular final {{ otp.phone|slice:"-4:" }}.</p>
+<label>Código de seis dígitos<input name="code" class="otp" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
+</label>
+<button class="btn wide">Confirmar código</button>
+<button class="secondary wide" name="resend" formnovalidate data-wait="{{ wait }}">Reenviar SMS</button><a class="textlink" href="{% url 'phone' %}">Alterar telefone</a>
+{% else %}
+<h1>Complete seu cadastro</h1>
+<label>Telefone verificado<input value="{{ phone }}" readonly>
+</label>{{ form.as_p }}<button class="btn wide">Cadastrar e continuar</button>
+{% endif %}</form>
+</div>
+{% endblock %}

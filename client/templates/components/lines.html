@@ -1,0 +1,5 @@
+{% load bistro %}{% for line in lines %}
+<div class="row"><span>{{ line.qty }} × {{ line.name }}{% if line.option or line.extras or line.notes %}<small class="block">{{ line.option }} {{ line.extras|join:", " }} {{ line.notes }}</small>
+{% endif %}</span><strong>{{ line.total|brl }}</strong>
+</div>
+{% endfor %}

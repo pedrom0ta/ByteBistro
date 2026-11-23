@@ -1,0 +1,13 @@
+{% for action,label in buttons.items %}
+{% if action == 'reject' %}
+<details class="operation-form"><summary>{{ label }}</summary>
+<form method="post" action="{% url 'staff_change' order.pk %}">{% csrf_token %}
+<input type="hidden" name="stage" value="{{ order.stage }}">
+<label>Motivo da recusa<textarea name="reason" maxlength="300" placeholder="Ex.: produto indisponível" required></textarea></label>
+<button class="danger" name="action" value="{{ action }}">Confirmar recusa</button></form></details>
+{% else %}
+<form class="operation-form" method="post" action="{% url 'staff_change' order.pk %}" {% if action == 'accept' %}data-confirm="Aceitar este pedido e enviá-lo à cozinha?"{% endif %}>
+{% csrf_token %}<input name="stage" type="hidden" value="{{ order.stage }}"><input name="return" type="hidden" value="{{ section }}">
+<button class="primary" name="action" value="{{ action }}">{{ label }}</button></form>
+{% endif %}
+{% endfor %}

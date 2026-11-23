@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block title %}Cardápio{% endblock %}{% block content %}
+<section class="intro">
+<div>
+<h1>Cardápio</h1>
+<p>Escolha um prato para ver os detalhes e personalizar.</p>
+</div>
+{% include "components/search.html" %}</section>
+{% include "components/categories.html" %}
+<div class="sectionhead">
+<h2>{{ category|default:"Todos os produtos" }}</h2><small>{{ products|length }} resultado{{ products|length|pluralize:"s" }}</small>
+</div>
+<div class="grid menu-grid">
+{% for p in products %}{% include "components/card.html" %}{% empty %}
+<div class="panel">
+<h3>Nenhum produto encontrado</h3><a href="{% url 'menu' %}">Limpar filtros</a>
+</div>
+{% endfor %}</div>
+{% endblock %}

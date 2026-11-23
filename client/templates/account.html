@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% block title %}Conta{% endblock %}{% block content %}
+<div class="narrow">
+<h1>Minha conta</h1>
+{% if user_data %}
+<div class="panel">
+<h2>{{ user_data.name }}</h2>
+<p>{{ user_data.phone }}<br>{{ user_data.email }}</p><a class="textlink" href="{% url 'history' %}">Meus pedidos</a>
+</div>
+<details open><summary>Meus endereços</summary>
+{% for a in user_data.addresses %}
+<p>{{ a.street }}, {{ a.number }} · {{ a.district }} · {{ a.city }}/{{ a.state }}</p>{% empty %}
+<p>Os endereços usados no checkout aparecerão aqui.</p>
+{% endfor %}</details>
+<details><summary>Formas de pagamento</summary>
+<p>{{ payments|join:", " }}. Pagamento na entrega.</p>
+</details>
+{% else %}
+<section class="panel">
+<h2>Entre com seu celular</h2>
+<p>Acesse seus pedidos e endereços salvos.</p><a class="btn" href="{% url 'phone' %}?next=account">Entrar ou criar conta</a>
+</section>
+{% endif %}<details><summary>Ajuda e suporte</summary>
+<p>Para tirar dúvidas sobre um pedido, informe seu número à equipe do restaurante.</p>
+</details>
+{% if user_data %}
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}
+<button class="secondary">Sair da conta</button>
+</form>
+{% endif %}</div>
+{% endblock %}

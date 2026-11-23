@@ -1,0 +1,5 @@
+<div class="chips"><a href="{% url 'menu' %}?q={{ query|urlencode }}" class="{% if not category %}chosen{% endif %}">
+{% include "components/i.html" with i="grid" %}Todos</a>
+{% for c in categories %}<a class="{% if c == category %}chosen{% endif %}" href="{% url 'menu' %}?cat={{ c|urlencode }}&amp;q={{ query|urlencode }}">
+{% include "components/i.html" with i=forloop.counter %}{{ c }}</a>
+{% endfor %}</div>

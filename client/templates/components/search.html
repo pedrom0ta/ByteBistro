@@ -1,0 +1,4 @@
+<form action="{% url 'menu' %}" class="search" role="search">
+{% include "components/i.html" with i="search" %}<input name="q" type="search" aria-label="Buscar no cardápio" placeholder="Buscar pratos, bebidas..." value="{{ query }}">
+{% if category %}<input type="hidden" name="cat" value="{{ category }}">
+{% endif %}</form>

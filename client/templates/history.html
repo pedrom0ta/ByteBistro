@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load bistro %}{% block title %}Pedidos{% endblock %}{% block content %}
+<h1>Meus pedidos</h1>
+{% for o in orders %}<a class="ordercard panel" href="{% url 'track' o.pk %}">
+<div><small>{{ o.created|date:"d/m/Y · H:i" }} · {{ o.mode|capfirst }}</small>
+<h3>Pedido #{{ o.number }}</h3>
+<p>{{ o.status }}</p>
+</div><strong>{{ o.total|brl }}</strong></a>{% empty %}
+<div class="empty">
+{% include "components/i.html" with i="receipt" %}
+<h2>Nenhum pedido por aqui</h2><a class="btn" href="{% url 'menu' %}">Ver cardápio</a>
+</div>
+{% endfor %}{% endblock %}

@@ -1,0 +1,24 @@
+{% load bistro %}
+<div class="page-heading"><div><h1>Pedido #{{ order.number }}</h1><p>{{ order.created|date:"d/m/Y · H:i" }} · {{ order.mode|capfirst }}</p></div><span class="badge stage-{{ order.stage }}">{{ order.status }}</span></div>
+<div class="detail-grid">
+<section class="panel"><h2>Itens do pedido</h2>{% include 'staff/items.html' with show_prices=True %}
+{% if order.notes %}<p class="note">{{ order.notes }}</p>{% endif %}
+<p>Subtotal {{ order.subtotal|brl }} · Desconto {{ order.discount|brl }} · Entrega {{ order.fee|brl }}</p><h3>Total {{ order.total|brl }}</h3>
+<p>{{ order.payment }} · {% if order.paid_at %}Recebimento registrado {% else %}Recebimento pendente{% endif %}</p>
+{% include 'staff/actions.html' %}
+{% if show_private and order.stage < 90 %}
+{% if order.mode == 'delivery' and order.stage == 4 or order.mode == 'restaurante' and order.stage == 3 %}
+{% if not order.paid_at %}<form method="post" action="{% url 'staff_change' order.pk %}" data-confirm="Confirma que o valor já foi recebido?">{% csrf_token %}<input name="stage" type="hidden" value="{{ order.stage }}"><button name="action" value="paid">Registrar recebimento</button></form>{% endif %}
+{% else %}
+<details><summary>Cancelar pedido</summary><form method="post" action="{% url 'staff_change' order.pk %}">{% csrf_token %}<input name="stage" type="hidden" value="{{ order.stage }}"><label>Motivo<textarea name="reason" required maxlength="300"></textarea></label><button class="danger" name="action" value="cancel">Confirmar cancelamento</button></form></details>
+{% endif %}{% endif %}
+</section>
+<section class="panel"><h2>Atendimento</h2>
+{% if order.destination.table %}<p>{{ order.destination.label|default:"Mesa" }} · nº {{ order.destination.table }}</p>{% else %}
+<p>{{ order.customer.name }}</p>
+{% if show_private %}<p>{{ order.customer.phone }}</p><p>{{ order.destination.street }}, {{ order.destination.number }} · {{ order.destination.district }}<br>{{ order.destination.city }}/{{ order.destination.state }} · CEP {{ order.destination.cep }}<br>{{ order.destination.extra }} {{ order.destination.reference }}</p>{% endif %}
+{% endif %}
+<p>Responsável pela aprovação: {{ order.accepted_by|default:"—" }}</p>
+<h2>Histórico</h2>
+<ol class="events">{% for event in order.events.all %}<li><b>{{ event.label }}</b><small>{{ event.created|date:"d/m/Y · H:i:s" }}{% if event.actor %} · {{ event.actor.username }}{% endif %}</small>{% if event.reason %}<p>{{ event.reason }}</p>{% endif %}</li>{% endfor %}</ol>
+</section></div>

@@ -1,0 +1,51 @@
+{% extends 'staff/base.html' %}{% load bistro %}
+{% block content %}
+<div class="page-heading"><div><h1>{{ title }}</h1><p>{{ config.name }} · Gestão do restaurante</p></div></div>
+<div class="{% if section == 'tables' %}tables-layout{% elif form and can_edit or section == 'staff' %}detail-grid{% endif %}">
+{% if section != 'settings' %}
+<section class="panel">
+{% if section == 'customers' %}
+<h2>Clientes do delivery</h2>
+{% for person in customers %}<details class="record"><summary>{{ person.name }} · {{ person.purchases|length }} pedido{{ person.purchases|length|pluralize:"s" }}</summary><p>{{ person.phone }} · {{ person.email|default:"E-mail não informado" }}</p>
+{% if person.purchases %}<p>Último pedido em {{ person.purchases.0.created|date:"d/m/Y H:i" }}</p>{% endif %}
+{% for o in person.purchases %}<p><a href="{% url 'staff_detail' o.pk %}">#{{ o.number }}</a> · {{ o.created|date:"d/m/Y" }} · {{ o.status }} · {{ o.total|brl }}</p>{% endfor %}</details>
+{% empty %}<p>Nenhum cliente cadastrado.</p>{% endfor %}
+{% elif section == 'staff' %}
+<h2>Equipe cadastrada</h2>
+{% for employee in employees %}<div class="record"><strong>{{ employee.get_full_name|default:employee.username }}</strong><p>{% if employee.is_superuser %}Administrador{% else %}{% for group in employee.groups.all %}{{ group.name|capfirst }} {% endfor %}{% endif %} · {% if employee.is_active %}Ativo{% else %}Desativado{% endif %}</p>
+{% if employee.pk != request.user.pk %}<form method="post" action="{% url 'staff_toggle' employee.pk %}">{% csrf_token %}<button>{% if employee.is_active %}Desativar{% else %}Reativar{% endif %}</button></form>{% endif %}</div>{% endfor %}
+{% else %}
+<h2>Registros</h2>
+<div class="records records-{{ section }}">
+{% for item in entries %}<article class="record">
+{% if section == 'tables' %}
+<strong>{{ item }}</strong>
+<p>{% if not item.active %}Indisponível{% elif item.active_orders %}{% if item.active_orders.0.stage == 0 %}Aguardando atendimento{% else %}Com pedido ativo{% endif %}{% else %}Livre{% endif %} · {{ item.balance|brl }}</p>
+{% for o in item.active_orders %}<p><a href="{% url 'staff_detail' o.pk %}">#{{ o.number }}</a> · {{ o.created|date:"H:i" }} · {{ o.status }}</p>{% endfor %}
+{% else %}
+{% if section == 'products' %}<img class="catalog-thumb" src="{{ item.image_url }}" alt="" loading="lazy" width="64" height="64">{% endif %}
+<div><strong>{{ item.name }}</strong>
+{% if section == 'products' %}<p>{{ item.category }} · {{ item.final|brl }} · {% if item.archived %}Arquivado{% elif item.available and item.category.active %}Disponível{% else %}Indisponível{% endif %}</p>{% endif %}
+{% if section == 'categories' %}<p>Ordem {{ item.position }} · {% if item.active %}Ativa{% else %}Inativa{% endif %}</p>{% endif %}
+{% if section == 'inventory' %}<p>{{ item.quantity }} {{ item.unit }} · Mínimo {{ item.minimum }} · {{ item.updated|date:"d/m/Y H:i" }} {% if item.low %}<span class="badge stage-0">Estoque baixo</span>{% endif %}</p>{% endif %}
+</div>{% endif %}
+{% if can_edit %}<div class="record-actions"><a href="?edit={{ item.pk }}">Editar{% if section == 'inventory' %} ou movimentar{% endif %}</a>
+{% if section == 'products' and not item.archived %}<form method="post">{% csrf_token %}<input type="hidden" name="product_id" value="{{ item.pk }}"><button name="availability" value="{% if item.available %}off{% else %}on{% endif %}">{% if item.available %}Desativar{% else %}Ativar{% endif %}</button></form>{% endif %}</div>{% endif %}
+</article>{% empty %}<p>Nenhum registro cadastrado.</p>{% endfor %}
+</div>
+{% endif %}
+</section>
+{% endif %}
+{% if form and can_edit or section == 'staff' or section == 'settings' %}
+<div>
+<section class="panel"><h2>{% if section == 'settings' %}Preferências{% elif selected %}Editar registro{% else %}Novo registro{% endif %}</h2>
+{% if selected %}<a href="?">Novo registro</a>{% endif %}
+<form method="post" class="editor">{% csrf_token %}{{ form.as_p }}<button class="primary">Salvar</button></form></section>
+{% if section == 'inventory' and selected %}
+<section class="panel"><h2>Movimentar estoque</h2><form method="post" class="editor">{% csrf_token %}{{ movement.as_p }}<button name="movement" value="1" class="primary">Registrar movimentação</button></form>
+<h3>Histórico</h3>{% for movement in selected.movements.all reversed %}<p>{{ movement.created|date:"d/m/Y H:i" }} · {{ movement.delta }} · {{ movement.reason }} · {{ movement.actor|default:"—" }}</p>{% empty %}<p>Nenhuma movimentação.</p>{% endfor %}</section>
+{% endif %}
+</div>
+{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load bistro %}{% block title %}Acompanhar pedido{% endblock %}{% block content %}
+<h1>Acompanhar pedido</h1>
+<p>Pedido #{{ order.number }} · {{ order.created|date:"d/m/Y · H:i" }}</p>
+<div class="split">
+<section class="panel" data-tracker="{% url 'status' order.pk %}" data-done="{% url 'done' order.pk %}" data-stage="{{ order.stage }}">
+<h2 data-status>{{ order.status }}</h2>
+<p data-reason aria-live="polite">{{ order.reason }}</p>
+<ol class="timeline">
+{% for s in order.stages %}<li class="{% if forloop.counter0 <= order.progress %}passed{% endif %}">{{ s }}</li>
+{% endfor %}</ol>
+<p data-connection aria-live="polite">
+</p>
+</section>
+<aside class="panel">
+<h2>Detalhes do pedido</h2>
+<p>{{ order.mode|capfirst }} · {% if order.destination.table %}{{ order.destination.label|default:'Mesa' }}{% if not order.destination.label %} {{ order.destination.table }}{% endif %}{% else %}{{ order.destination.street }}, {{ order.destination.number }} · {{ order.destination.district }}, {{ order.destination.city }}/{{ order.destination.state }} · {{ order.destination.cep }} {{ order.destination.extra }} {{ order.destination.reference }}{% endif %}</p>
+<p>{{ order.payment }}{% if order.mode == 'delivery' %} na entrega{% endif %}</p>
+{% include "components/lines.html" with lines=order.items %}{% if order.notes %}
+<p>{{ order.notes }}</p>
+{% endif %}{% include "components/totals.html" with subtotal=order.subtotal discount=order.discount final=order.total fee=order.fee delivery=order.fee %}</aside>
+</div>
+{% endblock %}

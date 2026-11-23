@@ -1,0 +1,5 @@
+{% extends 'staff/base.html' %}{% load bistro %}
+{% block content %}
+<a href="{% url 'staff_section' 'orders' %}">Voltar aos pedidos</a>
+{% include 'staff/order_details.html' %}
+{% endblock %}

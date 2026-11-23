@@ -1,0 +1,7 @@
+{% load bistro %}
+<ul class="items">
+{% for item in order.items %}
+  <li><strong>{{ item.qty }}× {{ item.name }}</strong>{% if show_prices %} · {{ item.unit|brl }} por un. · {{ item.total|brl }}{% endif %}
+  {% if item.option or item.extras or item.notes %}<small>{{ item.option }}{% if item.extras %} · {{ item.extras|join:", " }}{% endif %}{% if item.notes %} · {{ item.notes }}{% endif %}</small>{% endif %}</li>
+{% endfor %}
+</ul>

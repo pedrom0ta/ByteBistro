@@ -1,0 +1,6 @@
+<nav aria-label="Operação">
+  {% for key,label in nav %}
+  <a href="{% url 'staff_section' key %}" {% if key == section %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+<a class="public-link" href="{% url 'home' %}">Abrir site do cliente</a>

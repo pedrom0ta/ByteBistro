@@ -1,0 +1,9 @@
+{% load static bistro %}<a class="productcard" href="{% url 'product' p.slug %}">
+<div class="photo"><img loading="lazy" src="{{ p.image_url }}" alt="{{ p.name }}">
+</div>
+<div class="cardbody"><small>{{ p.category }}</small>
+<h3>{{ p.name }}</h3>
+<p>{{ p.description }}</p>
+<div class="pricebar"><strong>{{ p.final|brl }}</strong><span aria-hidden="true">+</span>
+</div>
+</div></a>

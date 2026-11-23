@@ -1,0 +1,11 @@
+<a href="{% url 'home' %}" class="{% if active == 'home' %}on{% endif %}">
+{% include "components/i.html" with i="home" %}Início</a>
+<a href="{% url 'menu' %}" class="{% if active == 'menu' %}on{% endif %}">
+{% include "components/i.html" with i="book" %}Cardápio</a>
+{% if mobile %}
+<a class="mobcart {% if active == 'cart' %}on{% endif %}" href="{% url 'cart' %}" aria-label="Carrinho, {{ count }} itens">
+<span class="mobcart-icon">{% include "components/i.html" with i="bag" %}{% if count %}<b>{{ count }}</b>{% endif %}</span><span>Carrinho</span></a>
+{% endif %}
+<a href="{% url 'history' %}" class="{% if active == 'history' %}on{% endif %}">
+{% include "components/i.html" with i="receipt" %}Pedidos</a>
+{% if mobile %}{% include 'components/account_link.html' %}{% endif %}

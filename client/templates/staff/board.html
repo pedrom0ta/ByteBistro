@@ -1,0 +1,19 @@
+{% extends 'staff/base.html' %}
+{% block content %}
+<div class="page-heading">
+  <div><h1>{{ title }}</h1><p>{% if section == 'kitchen' %}Fila de preparo da cozinha{% else %}Receba pedidos e acompanhe cada etapa da operação.{% endif %}</p></div>
+  {% if section == 'orders' %}
+    <form method="get" class="filter"><label for="days">Histórico</label><select id="days" name="days"><option value="1">Hoje</option><option value="7" {% if days == 7 %}selected{% endif %}>Últimos 7 dias</option><option value="30" {% if days == 30 %}selected{% endif %}>Últimos 30 dias</option></select><button>Filtrar</button></form>
+  {% endif %}
+</div>
+<div class="live-bar"><span class="live-dot"></span><span data-connection aria-live="polite">Atualização automática</span>
+{% if config.sound %}<button type="button" data-sound>Ativar som</button>{% endif %}</div>
+<div class="alerts" data-alerts hidden><strong>Avisos da operação</strong><ul data-alert-list><li>Nenhum aviso novo.</li></ul></div>
+<div data-board="{% url 'staff_fragment' section %}?days={{ days }}">{% include 'staff/columns.html' %}</div>
+{% if section == 'orders' %}
+<dialog class="order-dialog" data-order-dialog aria-label="Detalhes do pedido">
+  <form method="dialog"><button autofocus>Fechar</button></form>
+  <div data-dialog-content></div>
+</dialog>
+{% endif %}
+{% endblock %}

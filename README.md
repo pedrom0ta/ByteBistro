@@ -1,5 +1,21 @@
 # ByteBistro
 
+## Executar o cardápio digital
+
+O cliente web Django está em [client](client/README.md). Ele permite montar o carrinho, pedir na mesa ou por delivery e acompanhar o pedido. A demonstração usa um catálogo local, SQLite e verificação por código no terminal.
+
+```powershell
+cd client
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
+.\.venv\Scripts\python manage.py migrate
+.\.venv\Scripts\python manage.py runserver
+```
+
+Abra [o ByteBistro local](http://127.0.0.1:8000/). O [guia do cliente](client/README.md) descreve as telas, testes, atualização de status e integração futura com GraphQL.
+
+O [painel do restaurante](http://127.0.0.1:8000/painel/) usa os mesmos pedidos e produtos. Crie a primeira conta com `python manage.py createsuperuser` a partir de `client`. O [guia de operação](client/README.md#painel-do-restaurante) explica perfis, recebimento, cozinha e relatórios.
+
 ## Sistema de Cardápio Digital e Gerenciamento de Pedidos
 
 **PROFESSOR**  
@@ -635,7 +651,7 @@ Sistemas Distribuídos aplicados à Gastronomia.
 | **Etapa 1** | Definição do domínio, problema e proposta do ByteBistro | ✅ Concluído |
 | **Etapa 2** | Definição da arquitetura e tecnologias | ✅ Concluído |
 | **Etapa 3** | Estruturação do repositório e organização inicial do projeto | ✅ Concluído |
-| **Etapa 4** | Desenvolvimento da interface do cliente com Python/Django | 🔄 Em desenvolvimento |
+| **Etapa 4** | Desenvolvimento da interface do cliente com Python/Django | ✅ Demonstração local implementada |
 | **Etapa 5** | Desenvolvimento do Backend com Node.js + TypeScript | 🔄 Em desenvolvimento |
 | **Etapa 6** | Implementação da API GraphQL com Apollo Server e Resolvers | ⏳ Planejado |
 | **Etapa 7** | Integração Prisma + PostgreSQL | ⏳ Planejado |

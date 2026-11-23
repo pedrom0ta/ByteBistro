@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}Conclusão{% endblock %}{% block content %}
+<div class="empty"><span class="success">✓</span>
+<h1>
+{% if order.mode == "delivery" %}Pedido entregue!{% else %}Seu pedido está pronto!{% endif %}</h1>
+<p>Pedido #{{ order.number }} · Bom apetite!</p><a class="btn" href="{% url 'track' order.pk %}?detalhes=1">Ver detalhes</a><a class="secondary" href="{% url 'menu' %}">Voltar ao cardápio</a>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'staff/base.html' %}{% load bistro %}
+{% block content %}
+<div class="page-heading"><div><h1>{{ title }}</h1><p>{% if section == 'reports' %}Desempenho de vendas e atendimento{% else %}Visão geral da operação de hoje{% endif %}</p></div>
+{% if section == 'reports' %}<form method="get" class="filter"><label for="days">Período</label><select id="days" name="days"><option value="1">Hoje</option><option value="7" {% if days == 7 %}selected{% endif %}>Últimos 7 dias</option><option value="30" {% if days == 30 %}selected{% endif %}>Últimos 30 dias</option></select><button>Aplicar</button></form>{% endif %}</div>
+<div class="metrics">
+  <div><span>Pedidos recebidos</span><b>{{ values.count }}</b></div>
+  <div><span>Aguardando aprovação</span><b>{{ values.pending }}</b></div>
+  <div><span>Em preparo</span><b>{{ values.preparing }}</b></div>
+  <div><span>Prontos</span><b>{{ values.ready }}</b></div>
+  <div><span>Concluídos</span><b>{{ values.completed }}</b></div>
+  <div><span>Recusados</span><b>{{ values.rejected }}</b></div>
+  <div><span>Cancelados</span><b>{{ values.cancelled }}</b></div>
+  <div><span>Faturamento recebido</span><b>{{ values.received|brl }}</b></div>
+  <div><span>Tempo médio de preparo</span><b>{% if values.average is not None %}{{ values.average }} min{% else %}—{% endif %}</b></div>
+  {% if section == 'reports' %}<div><span>Ticket médio recebido</span><b>{% if values.ticket is not None %}{{ values.ticket|brl }}{% else %}—{% endif %}</b></div><div><span>Valor a receber</span><b>{{ values.unpaid|brl }}</b></div>{% endif %}
+</div>
+{% if section == 'reports' %}
+<section class="panel"><h2>Recebimentos por dia</h2>
+{% for day, amount in revenue %}<div class="chart-row"><span>{{ day|date:"d/m/Y" }}</span><meter min="0" max="{{ revenue_max }}" value="{{ amount }}">{{ amount }}</meter><b>{{ amount|brl }}</b></div>
+{% empty %}<p>Nenhum recebimento registrado no período.</p>{% endfor %}</section>
+<div class="detail-grid"><section class="panel"><h2>Produtos mais vendidos</h2>{% for label,value in sales %}<div class="chart-row"><span>{{ label }}</span><meter min="0" max="{{ sales.0.1 }}" value="{{ value }}">{{ value }}</meter><b>{{ value }}</b></div>{% empty %}<p>Nenhum pedido concluído no período.</p>{% endfor %}</section>
+<section class="panel"><h2>Pedidos por modalidade</h2>{% for label,value in modes %}<div class="chart-row"><span>{{ label|capfirst }}</span><meter min="0" max="{{ values.count }}" value="{{ value }}">{{ value }}</meter><b>{{ value }}</b></div>{% empty %}<p>Nenhum pedido no período.</p>{% endfor %}</section></div>
+{% endif %}
+<section class="panel"><h2>Pedidos recentes</h2><div class="scroll-table"><table><thead><tr><th>Pedido</th><th>Horário</th><th>Modalidade</th><th>Cliente ou mesa</th><th>Total</th><th>Status</th><th>Ação</th></tr></thead><tbody>
+{% for order in entries %}<tr><td>#{{ order.number }}</td><td>{{ order.created|date:"H:i" }}</td><td>{{ order.mode|capfirst }}</td><td>{% if order.destination.table %}{{ order.destination.label|default:order.destination.table }}{% else %}{{ order.customer.name|default:"Delivery" }}{% endif %}</td><td>{{ order.total|brl }}</td><td><span class="badge stage-{{ order.stage }}">{{ order.status }}</span></td><td><a href="{% url 'staff_detail' order.pk %}">Ver detalhes</a></td></tr>{% empty %}<tr><td colspan="7">Nenhum pedido no período.</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

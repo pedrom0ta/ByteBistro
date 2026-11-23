@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load static bistro %}{% block title %}{{ p.name }}{% endblock %}{% block content %}
+<div class="split detail"><img class="detailphoto" src="{{ p.image_url }}" alt="{{ p.name }}">
+<div><small class="type">{{ p.category }}</small>
+<h1>{{ p.name }}</h1>
+<p>{{ p.description }}</p>
+<h2>
+{% if p.discount %}<del>{{ p.price|brl }}</del> {% endif %}{{ p.final|brl }}</h2>
+{% if p.available %}<form method="post" data-product="{{ p.final }}">{% csrf_token %}{% if p.options %}
+<fieldset>
+<legend>Personalização</legend>
+<div class="choices">
+{% for option in p.options %}<label><input type="radio" name="option" value="{{ option }}" required {% if forloop.first %}checked{% endif %}>{{ option }}</label>
+{% endfor %}</div>
+</fieldset>
+{% endif %}{% if p.extras %}
+<fieldset>
+<legend>Adicionais <small>opcionais</small>
+</legend>
+{% for name, price in p.extras %}<label class="checkrow"><input type="checkbox" name="extras" value="{{ name }}" data-price="{{ price }}">{{ name }} <b>+ {{ price|brl }}</b>
+</label>
+{% endfor %}</fieldset>
+{% endif %}<label>Observações<textarea maxlength="300" name="notes" placeholder="Algum pedido especial?"></textarea>
+</label>
+<div class="actionrow">
+<div class="stepper">
+<button type="button" data-step="-1" aria-label="Diminuir quantidade">−</button><input name="qty" type="number" value="1" min="1" max="20" required aria-label="Quantidade">
+<button type="button" data-step="1" aria-label="Aumentar quantidade">+</button>
+</div>
+<button class="btn">Adicionar ao carrinho · <span data-total>{{ p.final|brl }}</span>
+</button>
+</div>
+</form>{% else %}<p>Produto indisponível no momento.</p>{% endif %}
+</div>
+</div>
+{% endblock %}

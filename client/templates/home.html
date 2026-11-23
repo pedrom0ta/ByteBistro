@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% load static bistro %}{% block content %}
+<section class="intro">
+<div>
+<h1>O que vai pedir hoje<span>?</span>
+</h1>
+<p>Explore o cardápio e encontre seu próximo favorito.</p>
+</div>
+{% include "components/search.html" %}</section>
+{% if not restaurant.accepting %}<p class="alert">O restaurante pausou o recebimento de pedidos.</p>{% endif %}
+{% if featured %}<section class="hero"><img src="{{ featured.image_url }}" alt="{{ featured.name }}">
+<div class="herocopy">
+<div class="promotag">
+{% include "components/i.html" with i="tag" %} {% if featured.discount %}Promoção do dia{% else %}Destaque do cardápio{% endif %}</div>
+<h2>{{ featured.name }}</h2>
+<p>{{ featured.description }}</p>
+<div class="heroprice">{% if featured.discount %}<del>{{ featured.price|brl }}</del>{% endif %}<strong>{{ featured.final|brl }}</strong>
+</div><a class="btn" href="{% url 'product' featured.slug %}">{% if featured.discount %}Ver oferta{% else %}Ver produto{% endif %}</a>
+</div>
+</section>{% endif %}
+<section>
+<div class="sectionhead">
+<h2>Categorias</h2>
+</div>
+{% include "components/categories.html" %}</section>
+<section>
+<div class="sectionhead">
+<h2>Populares da casa</h2><a class="textlink" href="{% url 'menu' %}">Ver cardápio completo</a>
+</div>
+<div class="grid">
+{% for p in popular %}{% include "components/card.html" %}{% endfor %}</div>
+</section>
+{% endblock %}
