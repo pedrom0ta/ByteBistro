@@ -3,19 +3,19 @@
 Este documento lista os requisitos não funcionais planejados para o ByteBistro. Itens ainda não definidos com precisão estão marcados como **"a definir"**.
 
 ## RNF01 — Comunicação
-A comunicação entre cliente e backend deve ocorrer via HTTP, utilizando GraphQL como linguagem de consulta.
+Na proposta distribuída, a comunicação entre Django e backend deve ocorrer via HTTP, utilizando GraphQL como linguagem de consulta.
 
 ## RNF02 — Tecnologia do Backend
 O backend deve ser desenvolvido em Node.js com TypeScript, utilizando Apollo Server para expor a API GraphQL.
 
 ## RNF03 — Tecnologia do Cliente
-O cliente deve ser desenvolvido em Python, utilizando Tkinter para a interface gráfica.
+A interface web executa em Python e Django, com templates HTML e JavaScript.
 
 ## RNF04 — Persistência
-O sistema deve utilizar SQLite como banco de dados na versão atual, com acesso via Prisma ORM.
+A demonstração usa ORM Django e SQLite. A evolução usa PostgreSQL e Prisma para o domínio.
 
 ## RNF05 — Hospedagem
-O sistema deve estar preparado para ser hospedado em uma instância AWS EC2.
+A hospedagem de produção permanece a definir.
 
 ## RNF06 — Organização do Código
 O código deve ser organizado de forma modular, separando claramente as responsabilidades de cliente, backend, banco de dados e infraestrutura.

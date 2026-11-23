@@ -1,0 +1,26 @@
+---
+config:
+  theme: neutral
+---
+flowchart LR
+    B["Navegador: vitrine e painel"]
+    subgraph D["Processo Django"]
+        U["URLs e middleware"]
+        V["Views e formulários"]
+        P["Views do painel"]
+        S["Serviços de carrinho e checkout"]
+        O["Permissões e transições"]
+        C["Consulta do catálogo"]
+        M["Modelos Django"]
+        OTP["Verificação por telefone"]
+        T["Templates"]
+        U --> V & P
+        V --> S & C & OTP & T
+        P --> O & T
+        P & S & O & C --> M
+    end
+    B -->|"HTTP"| U
+    T -->|"HTML"| B
+    M -->|"SQL"| DB["SQLite"]
+    OTP -->|"contadores e desafios"| Cache["Cache local"]
+    OTP -->|"código em desenvolvimento"| Console["Console"]

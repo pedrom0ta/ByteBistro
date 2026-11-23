@@ -23,12 +23,12 @@ O sistema deve permitir que o cliente selecione produtos e os adicione a um carr
 O sistema deve permitir a finalização de um pedido a partir dos itens presentes no carrinho.
 
 ## RF06 — Comunicação Cliente-Backend
-O sistema deve permitir a comunicação entre o cliente (Python/Tkinter) e o backend através de requisições HTTP utilizando GraphQL.
+O sistema deve permitir a comunicação entre o Django e Apollo via HTTP/GraphQL na arquitetura proposta. Atualmente as chamadas de domínio são locais no Django.
 
 ## RF07 — Persistência de Dados
-O sistema deve persistir as informações de restaurante, menu, produtos e pedidos utilizando o banco de dados definido (SQLite, via Prisma).
+O sistema deve persistir as informações de restaurante, menu, produtos e pedidos utilizando o ORM Django e SQLite na demonstração. A proposta de produção usa Prisma e PostgreSQL.
 
 ## Observações
 
-- Requisitos relacionados a autenticação, autorização e controle de acesso de usuários estão **a definir**, e serão detalhados conforme o projeto avançar.
+- Os controles de autenticação e autorização atuais e as evoluções planejadas estão no [System Design](../architecture/system-design.md#8-segurança).
 - Este documento poderá ser atualizado conforme o desenvolvimento evolui.

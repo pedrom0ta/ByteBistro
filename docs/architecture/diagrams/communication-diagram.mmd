@@ -1,0 +1,16 @@
+---
+config:
+  theme: neutral
+---
+flowchart LR
+    B["Navegador"]
+    D["Django"]
+    DB["SQLite"]
+    Cache["Cache local"]
+    B -->|"GET: catálogo, histórico, status, fragmentos"| D
+    B -->|"POST: formulário, cookie de sessão e CSRF"| D
+    D -->|"HTML, redirecionamento ou JSON de status"| B
+    D -->|"SQL via ORM: domínio, sessão e autenticação"| DB
+    DB -->|"linhas ou resultado da transação"| D
+    D -->|"desafio, expiração e limites de OTP"| Cache
+    Cache -->|"estado do desafio e contadores"| D

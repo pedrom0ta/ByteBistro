@@ -1,5 +1,9 @@
 # ByteBistro
 
+## Arquitetura e Documentação Técnica
+
+Consulte o [índice técnico do ByteBistro](docs/architecture/README.md) para o System Design, os diagramas editáveis e as decisões arquiteturais.
+
 ## Executar o cardápio digital
 
 O cliente web Django está em [client](client/README.md). Ele permite montar o carrinho, pedir na mesa ou por delivery e acompanhar o pedido. A demonstração usa um catálogo local, SQLite e verificação por código no terminal.
@@ -115,7 +119,7 @@ Após revisar o carrinho, o cliente confirma a compra. O sistema transforma os i
 
 ↓
 
-**Banco de Dados**
+**PostgreSQL**
 
 ---
 
@@ -142,7 +146,7 @@ Após revisar o carrinho, o cliente confirma a compra. O sistema transforma os i
              │ Prisma ORM
              ▼
 ┌──────────────────────────┐
-│       CONTAINER          │
+│       PERSISTÊNCIA       │
 │                          │
 │       PostgreSQL         │
 └──────────────────────────┘
@@ -215,30 +219,6 @@ Permite escalar módulos específicos individualmente.
 
 ---
 
-# HOSPEDAGEM
-
-## Infraestrutura
-
-### AWS EC2 + Docker
-
-- **AWS:** Provedor Cloud.
-- **EC2:** Máquina virtual alocada.
-- **Docker:** Containerização dos serviços.
-- **Conteúdo:** Aplicação Node.js + PostgreSQL em containers.
-
-**Servidor EC2**
-
-↓
-
-**Docker**
-
-├── Backend Node.js + Apollo Server
-
-├── PostgreSQL
-
-└── Demais serviços da aplicação
----
-
 # ARMAZENAMENTO
 
 ## Banco de Dados e Persistência
@@ -249,7 +229,7 @@ Permite escalar módulos específicos individualmente.
 
 Banco de dados relacional em rede.
 
-**Solução:** Permite que múltiplas instâncias EC2 acessem a mesma fonte da verdade.
+**Solução:** Permite que múltiplas instâncias acessem a mesma fonte da verdade.
 
 ---
 
@@ -267,7 +247,7 @@ Banco de dados relacional em rede.
 
 ↓
 
-**EC2 1 | EC2 2 | EC2 3**
+**Instância 1 | Instância 2 | Instância 3**
 
 ↓
 
@@ -309,32 +289,6 @@ Dados sensíveis fora do código-fonte.
 ### Regra de Ouro
 
 > **O arquivo .env NUNCA sobe para o GitHub.**
-
----
-
-# REDE
-
-## Firewall e Segmentação
-
-### INTERNET ABERTA
-
-↓
-
-### Borda / Load Balancer
-
-Apenas HTTP/HTTPS (Portas 80/443)
-
-↓
-
-### API / Backend (AWS Security Group)
-
-Bloqueia conexões diretas da internet. Libera SSH restrito.
-
-↓
-
-### Banco de Dados Privado
-
-Sem acesso externo. Só responde ao Backend.
 
 ---
 
@@ -384,7 +338,7 @@ Em vez de aumentar os recursos de uma única máquina, novas instâncias são ad
                      │
           ┌──────────┼──────────┐
           ▼          ▼          ▼
-       EC2 1       EC2 2      EC2 3
+       Instância 1       Instância 2      Instância 3
           │          │          │
           └──────────┼──────────┘
                      ▼
@@ -405,9 +359,9 @@ Distribui requisições uniformemente entre instâncias, evitando sobrecarga em 
 
 ### Auto Scaling
 
-**Pico de acesso?** Cria novas EC2.
+**Pico de acesso?** Cria novas instâncias.
 
-**Baixo acesso?** Desliga EC2 para economizar.
+**Baixo acesso?** Desliga instâncias para economizar.
 
 ---
 
@@ -417,7 +371,7 @@ Distribui requisições uniformemente entre instâncias, evitando sobrecarga em 
 
 ### PROPOSTA
 
-**LB + EC2s + PostgreSQL**
+**LB + instâncias + PostgreSQL**
 
 Desacoplar o banco para a rede. Múltiplas instâncias compartilham a mesma base de dados real.
 
@@ -494,7 +448,7 @@ Cópia regular dos dados.
 
 - Frequência (diário/hora).
 - Local de armazenamento.
-- Como recriar infraestrutura (EC2s).
+- Como recriar infraestrutura (instâncias).
 - Como restaurar backup via script.
 
 ### Disaster Recovery
@@ -505,34 +459,8 @@ Reconstrução total pós-falha.
 
 - Frequência (diário/hora).
 - Local de armazenamento.
-- Como recriar infraestrutura (EC2s).
+- Como recriar infraestrutura (instâncias).
 - Como restaurar backup via script.
-
----
-
-# NOMES E ENDEREÇOS
-
-## DNS: O mapa da internet
-
-DNS traduz nomes fáceis em endereços IP. Ele não hospeda o site, apenas direciona o tráfego.
-
-**api.bytebistro.com**
-
-Domínio/Subdomínio → Resolução
-
-**54.232.10.15**
-
-Endereço IP AWS
-
----
-
-# FLUXO DE REDE
-
-## O Caminho da Requisição
-
-> * Load Balancer e cluster EC2 marcam proposta futura.
-
-**Usuário → DNS → Load Balancer* → AWS EC2 → Node.js → Banco**
 
 ---
 
@@ -588,16 +516,15 @@ https://github.com/pedrom0ta/ByteBistro
 - Organização inicial do projeto
 - Definição da arquitetura
 - Definição das tecnologias
-- Monólito Modular
+- Demonstração web em Django com SQLite, incluindo vitrine e painel
 
 ### Evolução Proposta
 
-- Python + Django
+- Monólito modular de domínio em Node.js
 - Node.js + Apollo + GraphQL
 - Prisma + Banco de Dados
 - Integração Cliente ↔ Backend
 - Segurança e autenticação
-- AWS / EC2
 - Load Balancer
 - Auto Scaling
 - PostgreSQL
@@ -623,7 +550,7 @@ Monólito Modular escalável no futuro.
 
 ### Comunicação
 
-HTTP e GraphQL blindando o banco.
+A integração proposta usa HTTP e GraphQL entre Django e Node.js. O Prisma acessa o PostgreSQL.
 
 ### Segurança
 

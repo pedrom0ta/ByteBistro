@@ -1,0 +1,8 @@
+---
+config:
+  theme: neutral
+---
+flowchart TB
+    B["Cliente<br/>Navegador"] -->|"HTTP: formulários e navegação"| D["Aplicação<br/>Python / Django"]
+    D -->|"ORM: consultas e transações"| S["Persistência<br/>SQLite"]
+    D -->|"HTML e JSON"| B

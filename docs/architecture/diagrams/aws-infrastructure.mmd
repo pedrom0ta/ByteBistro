@@ -1,0 +1,64 @@
+flowchart TB
+    USER["CLIENTE<br/>Navegador Web"]
+
+    subgraph ENTRY["1. ENTRADA E DISTRIBUIÇÃO"]
+        R53["Route 53<br/>DNS"]
+        CF["CloudFront<br/>Distribuição"]
+        WAF["AWS WAF<br/>Proteção"]
+        ACM["ACM<br/>Certificado HTTPS"]
+        ALB["Application Load Balancer"]
+
+        R53 --> CF --> ALB
+        WAF -. Protege .-> CF
+        ACM -. HTTPS .-> CF
+    end
+
+    subgraph VPC["2. AWS VPC — DUAS ZONAS DE DISPONIBILIDADE"]
+        subgraph PUBLIC["SUB-REDES PÚBLICAS"]
+            NAT["NAT Gateways<br/>Saída para internet"]
+        end
+
+        subgraph APP["SUB-REDES PRIVADAS — EC2 / AUTO SCALING"]
+            WEB["Django<br/>Interface Web"]
+            API["Node.js + Apollo<br/>Backend GraphQL"]
+            WORKER["Workers<br/>Processamento assíncrono"]
+            WEB --> API
+        end
+
+        subgraph DATA["CAMADA PRIVADA DE DADOS"]
+            RDS[("RDS PostgreSQL<br/>Multi-AZ")]
+        end
+
+        ALB --> WEB
+        API --> RDS
+        API --> SQS["SQS<br/>Fila de tarefas"]
+        SQS --> WORKER
+        SQS -. Falhas repetidas .-> DLQ["SQS DLQ<br/>Mensagens com falha"]
+        WORKER --> SNS["SNS<br/>Notificações"]
+        NAT -. Saída .-> APP
+    end
+
+    subgraph STORAGE["3. ARMAZENAMENTO"]
+        S3["Amazon S3<br/>Imagens e arquivos"]
+        ECR["Amazon ECR<br/>Imagens Docker"]
+    end
+
+    CF --> S3
+    ECR -. Imagens para EC2 .-> APP
+
+    subgraph SECURITY["4. SEGURANÇA E OPERAÇÃO"]
+        IAM["IAM<br/>Permissões"]
+        SM["Secrets Manager<br/>Credenciais"]
+        CW["CloudWatch<br/>Logs, métricas e alarmes"]
+        CT["CloudTrail<br/>Auditoria"]
+        BACKUP["AWS Backup<br/>Proteção de dados"]
+    end
+
+    IAM -. Autoriza acesso .-> APP
+    SM -. Fornece segredos .-> API
+    APP -. Logs e métricas .-> CW
+    RDS -. Métricas .-> CW
+    CT -. Auditoria .-> CW
+    RDS -. Backup .-> BACKUP
+
+    USER --> R53

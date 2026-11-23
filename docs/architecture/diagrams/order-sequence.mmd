@@ -1,0 +1,29 @@
+---
+config:
+  theme: neutral
+---
+sequenceDiagram
+    participant C as Cliente / navegador
+    participant D as Views Django
+    participant S as Serviços de checkout
+    participant B as SQLite via ORM
+    participant P as Equipe / painel Django
+    C->>D: GET /cardapio/ e POST /produto/slug/
+    D->>S: Validar item e atualizar sessão
+    S->>B: Consultar produto e preço
+    D-->>C: Redirecionar ao carrinho
+    C->>D: POST /restaurante/ ou /delivery/ com token
+    D->>B: Buscar pedido acessível pelo token
+    alt Reenvio autorizado
+        D-->>C: Redirecionar ao pedido existente
+    else Novo pedido válido
+        D->>S: Confirmar com dados de mesa ou entrega
+        S->>B: Gravar pedido e evento received em transação
+        B-->>S: Commit
+        D-->>C: Redirecionar ao acompanhamento
+        P->>D: POST /painel/pedido/UUID/alterar/
+        D->>B: Atualizar etapa esperada e gravar evento
+        C->>D: GET /pedidos/UUID/status/
+        D->>B: Consultar pedido limitado à sessão ou cliente
+        D-->>C: JSON com etapa, status, conclusão e motivo
+    end

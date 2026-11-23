@@ -1,0 +1,10 @@
+---
+config:
+  theme: neutral
+---
+flowchart LR
+    Client["Cliente / navegador"] -->|"HTTP: vitrine e status"| Django["Django: interface, aplicação e domínio"]
+    Staff["Equipe / navegador"] -->|"HTTP: painel e operação"| Django
+    Django -->|"SQL via ORM"| SQLite["SQLite: domínio, sessões e autenticação"]
+    Django -->|"cache local"| OTP["Desafios e limites de OTP"]
+    Django -->|"modo de desenvolvimento"| Console["Provedor SMS no console"]

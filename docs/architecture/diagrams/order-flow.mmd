@@ -1,0 +1,20 @@
+---
+config:
+  theme: neutral
+---
+flowchart TD
+    A["Selecionar produtos e atualizar carrinho"] --> B["Enviar checkout com token"]
+    B --> C{"Pedido acessível já existe?"}
+    C -->|Sim| Track["Abrir acompanhamento"]
+    C -->|Não| D{"Modalidade habilitada e carrinho preenchido?"}
+    D -->|Não| Invalid["Retornar ao carrinho ou modalidade"]
+    D -->|Sim| E{"Delivery exige conta?"}
+    E -->|"Sim, falta autenticação"| Auth["Verificar telefone e cadastrar se necessário"]
+    Auth --> B
+    E -->|"Conta presente ou pedido na mesa"| F{"Token, itens e destino válidos?"}
+    F -->|Não| Form["Revisar formulário ou carrinho"]
+    F -->|Sim| G["Gravar pedido e evento em transação"]
+    G --> Track
+    Track --> H["Consultar status periodicamente"]
+    P["Equipe autorizada"] --> I["Alterar etapa com condição e gravar evento"]
+    I --> H
