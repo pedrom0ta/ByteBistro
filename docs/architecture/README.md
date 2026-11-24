@@ -1,6 +1,6 @@
 # Arquitetura e documentação técnica
 
-Comece pelo [System Design](system-design.md). A [arquitetura do sistema](system-architecture.md) descreve o MVP e os componentes da integração distribuída. Consulte os [ADRs](architecture-decisions.md) para as decisões de projeto e o [estado da implantação](../deployment/status.md) para saber o que está no ar.
+Comece pelo [System Design](system-design.md). A [arquitetura do sistema](system-architecture.md) descreve o MVP e os componentes da integração distribuída. Consulte os [ADRs](architecture-decisions.md) para as decisões de projeto.
 
 | Tema | Navegação |
 | --- | --- |

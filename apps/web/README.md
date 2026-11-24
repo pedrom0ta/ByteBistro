@@ -95,4 +95,4 @@ Com `BYTEBISTRO_GRAPHQL_URL` configurada, o Django consulta o status na API Grap
 
 O provedor de demonstração exibe o código de verificação no console. A aplicação permite selecionar um provedor em `SMS_PROVIDER`, com o contrato `issue(phone) -> challenge` e `verify(challenge, code) -> bool`. Na configuração distribuída, os desafios e limites de verificação usam cache compartilhado no PostgreSQL.
 
-O banco `demo.sqlite3` e a chave `.local.key` são dados locais da demonstração. Use dados fictícios. [Estado da implantação](../../docs/deployment/status.md)
+O banco `demo.sqlite3` e a chave `.local.key` são dados locais da demonstração. Use dados fictícios.

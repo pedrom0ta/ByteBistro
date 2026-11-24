@@ -20,4 +20,4 @@ O [guia de implantação na AWS](../../infrastructure/terraform/README.md) descr
 
 As imagens executam com usuário sem privilégios. O bootstrap carrega os segredos em execução, configura os logs e inicia os contêineres por digest. As migrações usam um executor separado. [Contrato das imagens](../../infrastructure/terraform/README.md#contrato-das-imagens)
 
-[Build e imagens Docker](https://docs.docker.com/build/building/best-practices/) · [Estado da implantação](status.md)
+[Build e imagens Docker](https://docs.docker.com/build/building/best-practices/)

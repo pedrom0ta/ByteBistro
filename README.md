@@ -7,7 +7,7 @@ Projeto da disciplina de Sistemas Distribuídos para gestão de cardápios e ped
 
 ## Diagrama de infraestrutura AWS
 
-O diagrama mostra a configuração distribuída definida em Terraform. A demonstração pública roda em uma EC2 separada. [Detalhes do diagrama](docs/architecture/aws-architecture.md) · [Estado da implantação](docs/deployment/status.md)
+O diagrama mostra a configuração distribuída definida em Terraform. A demonstração pública roda em uma EC2 separada. [Detalhes do diagrama](docs/architecture/aws-architecture.md)
 
 ```mermaid
 flowchart TB
@@ -91,7 +91,7 @@ flowchart TB
 - **Cliente.** Cardápio com busca e categorias, personalização de itens, carrinho, pedidos na mesa ou por delivery e acompanhamento.
 - **Equipe do restaurante.** Painel com acesso por perfil, fila de pedidos, cozinha, mesas, catálogo, estoque e registro de recebimentos.
 - **Demonstração.** A versão local roda com Django e SQLite e permite testar o delivery com o código de verificação no terminal. A vitrine também pode ser acessada na EC2. [Demonstração pública](https://54.209.48.237/)
-- **Integração distribuída.** O projeto implementa consulta de status via Apollo/GraphQL e Prisma com PostgreSQL e um worker para SQS/SNS. As três imagens do release foram publicadas no ECR. [Estado da implantação](docs/deployment/status.md)
+- **Integração distribuída.** O projeto implementa consulta de status via Apollo/GraphQL e Prisma com PostgreSQL e um worker para SQS/SNS. As três imagens do release foram publicadas no ECR.
 
 ## Executar localmente
 
@@ -121,6 +121,6 @@ Para uma avaliação rápida, envie um pedido na mesa, aceite-o no painel, marqu
 ## Documentação
 
 - [Arquitetura, decisões e diagramas](docs/architecture/README.md)
-- [Docker](docs/deployment/docker-guide.md), [implantação na AWS](infrastructure/terraform/README.md) e [estado da implantação](docs/deployment/status.md)
+- [Docker](docs/deployment/docker-guide.md) e [implantação na AWS](infrastructure/terraform/README.md)
 - [Requisitos funcionais](docs/requisitos/requisitos-funcionais.md) e [não funcionais](docs/requisitos/requisitos-nao-funcionais.md)
 - [Roteiro de apresentação](docs/apresentacao/README.md) e [resumo da entrega acadêmica](docs/apresentacao/material-academico.md)

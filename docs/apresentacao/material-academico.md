@@ -23,7 +23,7 @@ A apresentação percorre o fluxo **cardápio → carrinho → pedido na mesa �
 - **Processamento assíncrono.** A outbox é gravada na transação do pedido na configuração distribuída. O worker publica no SQS e encaminha notificações pelo SNS, com uma DLQ para falhas repetidas.
 - **Escalabilidade e disponibilidade.** O Terraform descreve ALB, frotas web e worker, RDS Multi-AZ, CloudFront e monitoramento. A demonstração pública atual usa uma EC2 separada.
 
-[System Design](../architecture/system-design.md) · [Decisões arquiteturais](../architecture/architecture-decisions.md) · [Estado da implantação](../deployment/status.md)
+[System Design](../architecture/system-design.md) · [Decisões arquiteturais](../architecture/architecture-decisions.md)
 
 ## Validação e limites
 

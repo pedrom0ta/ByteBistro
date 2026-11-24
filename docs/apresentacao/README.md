@@ -17,10 +17,10 @@ Apresente o problema de receber e acompanhar pedidos em restaurantes. Mostre com
 
 ## 3. System Design e arquitetura AWS — 3 minutos
 
-Mostre o que o Django executa no MVP e o ponto em que a integração usa Apollo/GraphQL para consultar o status no PostgreSQL. Use o diagrama para explicar a outbox, o worker, o SQS e o SNS. Apresente a EC2 de demonstração e o estado do rollout distribuído com CloudFront separadamente. [Estado da implantação](../deployment/status.md)
+Mostre o que o Django executa no MVP e o ponto em que a integração usa Apollo/GraphQL para consultar o status no PostgreSQL. Use o diagrama para explicar a outbox, o worker, o SQS e o SNS. Apresente a EC2 de demonstração e o estado do rollout distribuído com CloudFront separadamente.
 
 [System Design](../architecture/system-design.md) · [Diagrama AWS](../architecture/aws-architecture.md) · [Terraform](../../infrastructure/terraform/README.md)
 
 ## 4. Validação e encerramento — 2 minutos
 
-Apresente as verificações de reenvio de checkout, permissões do painel, acompanhamento privado e concorrência. Mostre os resultados da integração local com Apollo e PostgreSQL. [Verificações do projeto](../deployment/ci-cd.md) · [Estado da implantação](../deployment/status.md)
+Apresente as verificações de reenvio de checkout, permissões do painel, acompanhamento privado e concorrência. Mostre os resultados da integração local com Apollo e PostgreSQL. [Verificações do projeto](../deployment/ci-cd.md)

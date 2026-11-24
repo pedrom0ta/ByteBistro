@@ -6,7 +6,7 @@
 | --- | --- |
 | Implementado na demonstração | Python e Django, templates HTML, CSS e JavaScript, rotas de vitrine e painel, ORM Django, migrações e SQLite. [Configuração](../../apps/web/config/settings.py) · [Rotas](../../apps/web/config/urls.py) · [Dependências](../../apps/web/requirements.txt) |
 | Implementado no código distribuído | Django consulta o status via HTTP/GraphQL, mantém as regras de negócio, aplica as migrações do PostgreSQL e grava a outbox na mesma transação do pedido. Apollo/Prisma consulta o status e o worker integra SQS e SNS. [Serviços](../../apps/services/README.md) · [Banco](database.md) |
-| Implantação | A demonstração pública usa uma EC2. Os artefatos do ambiente distribuído estão publicados e a ativação via CloudFront está pendente. [Estado da implantação](../deployment/status.md) |
+| Implantação | A demonstração pública usa uma EC2. Os artefatos do ambiente distribuído estão publicados e a ativação via CloudFront está pendente. |
 | Empacotamento e verificação | Dockerfiles para web, API e worker. GitHub Actions configura as verificações de mudanças no código e o CodeBuild é definido no Terraform para releases. [CI/CD](../deployment/ci-cd.md) · [Infraestrutura](../../infrastructure/README.md) |
 | Proposto | Transferir a escrita do domínio para Node.js e separar o esquema de negócio das tabelas de sessão e identidade do Django. [Contrato proposto](#contrato-proposto) |
 

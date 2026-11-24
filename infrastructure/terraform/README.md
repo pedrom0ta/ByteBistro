@@ -1,6 +1,6 @@
 # Infraestrutura AWS do ByteBistro
 
-Esta configuração descreve a topologia do [diagrama AWS](../../docs/architecture/aws-architecture.md) como código. A demonstração pública usa uma EC2 independente com Django. A imagem web do ambiente distribuído usa PostgreSQL com TLS verificado. O Django mantém o checkout e as migrações. Apollo/Prisma consulta o status e o worker processa os eventos de outbox via SQS e SNS. [Estado da implantação](../../docs/deployment/status.md)
+Esta configuração descreve a topologia do [diagrama AWS](../../docs/architecture/aws-architecture.md) como código. A demonstração pública usa uma EC2 independente com Django. A imagem web do ambiente distribuído usa PostgreSQL com TLS verificado. O Django mantém o checkout e as migrações. Apollo/Prisma consulta o status e o worker processa os eventos de outbox via SQS e SNS.
 
 | Camada | Recursos definidos |
 | --- | --- |

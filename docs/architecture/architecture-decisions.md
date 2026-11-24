@@ -76,4 +76,4 @@
 
 ## Decisões em aberto
 
-Validar capacidade e objetivos de recuperação, política de notificação e exigência de ordem por pedido. Homologar a mensageria, verificar a restauração de backup e revisar o isolamento de credenciais entre contêineres. [Estado da implantação](../deployment/status.md)
+Validar capacidade e objetivos de recuperação, política de notificação e exigência de ordem por pedido. Homologar a mensageria, verificar a restauração de backup e revisar o isolamento de credenciais entre contêineres.

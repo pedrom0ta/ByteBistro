@@ -15,4 +15,4 @@
 
 Os objetivos de latência, throughput e recuperação ainda aguardam definição e testes.
 
-[System Design](../architecture/system-design.md) · [Estado da implantação](../deployment/status.md) · [CI/CD](../deployment/ci-cd.md)
+[System Design](../architecture/system-design.md) · [CI/CD](../deployment/ci-cd.md)
