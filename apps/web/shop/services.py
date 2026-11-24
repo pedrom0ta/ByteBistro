@@ -1,6 +1,6 @@
 import uuid
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.models import Q
 from .models import Customer, Order, OrderEvent, OrderOutbox
 from . import storefront
@@ -90,7 +90,11 @@ def confirm(session, token, mode, destination, payment, notes):
             if getattr(settings, "BYTEBISTRO_OUTBOX_ENABLED", False):
                 OrderOutbox.objects.create(order=order)
             if mode == "delivery":
-                account = customer(session)
+                # Serialize changes to the address list while allowing order foreign-key checks.
+                customers = Customer.objects.select_for_update(no_key=connection.features.has_select_for_no_key_update)
+                account = customers.filter(pk=fields["customer_id"]).first()
+                if account is None:
+                    raise ValueError("Entre na sua conta para concluir o pedido.")
                 if destination not in account.addresses:
                     account.addresses.append(destination)
                     account.save(update_fields=["addresses"])

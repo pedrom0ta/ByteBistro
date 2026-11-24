@@ -1,14 +1,14 @@
 # Arquitetura e documentação técnica
 
-Comece pelo [System Design](system-design.md). A [arquitetura do sistema](system-architecture.md) registra evidências do checkout e o contrato futuro. Consulte os [ADRs](architecture-decisions.md) para decisões e pendências.
+Comece pelo [System Design](system-design.md). A [arquitetura do sistema](system-architecture.md) descreve o MVP, a integração distribuída e sua evolução. Consulte os [ADRs](architecture-decisions.md) para decisões e o [estado da implantação](../deployment/status.md) para saber o que está no ar.
 
 | Tema | Navegação |
 | --- | --- |
 | Diagrama conceitual e alto nível | [Conceitual](#conceitual) · [Alto nível](#alto-nível) |
 | Componentes e comunicação | [Componentes](#componentes) · [Comunicação](#comunicação) |
-| Pedidos e dados | [Sequência e fluxo](#pedidos) · [Banco de dados](#banco-de-dados) |
-| Execução e automação | [Guia local](../../client/README.md) · [Docker](../deployment/docker-guide.md) · [CI/CD](../deployment/ci-cd.md) |
-| Infraestrutura proposta | [Diagrama AWS completo](aws-architecture.md) |
+| Pedidos e dados | [Sequência e fluxo](#pedidos) · [Banco de dados](database.md) · [ERD](#banco-de-dados) |
+| Execução e automação | [Guia local](../../apps/web/README.md) · [Docker](../deployment/docker-guide.md) · [CI/CD](../deployment/ci-cd.md) |
+| Infraestrutura distribuída | [Diagrama AWS completo](aws-architecture.md) |
 
 Os blocos renderizados reproduzem os arquivos `.mmd`. Ao alterar um diagrama, atualizar a cópia Markdown na mesma revisão. [Mermaid no GitHub](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
 

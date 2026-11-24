@@ -1,34 +1,19 @@
-# Requisitos Funcionais
+# Requisitos funcionais
 
-Este documento lista os requisitos funcionais planejados para o ByteBistro, com base no fluxo principal do sistema: **Restaurante → Menu → Produtos → Carrinho → Pedido**.
+O MVP cobre o fluxo de um estabelecimento, da configuração do cardápio ao acompanhamento de pedidos pelo cliente e pela equipe.
 
-Requisitos ainda não detalhados estão marcados como **"a definir"**, conforme o andamento do planejamento do projeto.
+| Requisito | Escopo implementado |
+| --- | --- |
+| RF01 — Gestão do restaurante | A equipe autorizada gerencia nome, endereço, contato, horários, taxa de entrega, tempo estimado de preparo, formas de pagamento e disponibilidade de pedidos. |
+| RF02 — Gestão do cardápio | O cardápio do estabelecimento reúne categorias ordenáveis. O cliente pode navegar por categoria e buscar produtos pelo nome, categoria ou descrição. |
+| RF03 — Gestão de produtos | A equipe pode cadastrar, editar, arquivar e controlar a disponibilidade de produtos. Cada produto inclui categoria, descrição, preço, desconto, imagem, opções e adicionais. |
+| RF04 — Carrinho | O cliente personaliza itens, altera quantidades e remove produtos. O servidor recalcula preços, adicionais, descontos e taxas. |
+| RF05 — Checkout | O cliente confirma o pedido em uma mesa ativa ou informa um endereço de entrega após a verificação do telefone. Enviar o mesmo token novamente recupera o pedido existente quando o cliente tem acesso. |
+| RF06 — Comunicação interna | Na configuração distribuída, o Django consulta o status no Apollo por HTTP/GraphQL com autenticação de serviço. Checkout e operação continuam no Django. |
+| RF07 — Persistência | O ORM Django mantém os dados no SQLite da demonstração e no PostgreSQL da configuração distribuída. O Prisma acessa pedidos para consulta de status e a outbox para processamento. |
+| RF08 — Acompanhamento | A sessão ou conta que tem acesso ao pedido pode consultar seus itens e andamento. No fluxo local de delivery, o código de verificação é exibido no terminal. |
+| RF09 — Operação do restaurante | O painel tem permissões por perfil, fila de pedidos, cozinha, mesas, estoque e relatórios. A equipe registra transições e confirma o recebimento de pagamentos. |
 
-## RF01 — Gestão de Restaurante
-O sistema deve permitir o cadastro e a manutenção das informações básicas de um restaurante.
-*Detalhamento dos campos: a definir.*
+As formas de pagamento registram a preferência e o recebimento presencial ou na entrega. A integração com SMS comercial e a cobrança eletrônica são evoluções.
 
-## RF02 — Gestão de Menu
-O sistema deve permitir associar um menu a um restaurante.
-*Detalhamento das regras de organização do menu: a definir.*
-
-## RF03 — Gestão de Produtos
-O sistema deve permitir o cadastro de produtos vinculados a um menu.
-*Detalhamento de atributos do produto (preço, descrição, categoria etc.): a definir.*
-
-## RF04 — Carrinho de Compras
-O sistema deve permitir que o cliente selecione produtos e os adicione a um carrinho antes de finalizar um pedido.
-
-## RF05 — Registro de Pedido
-O sistema deve permitir a finalização de um pedido a partir dos itens presentes no carrinho.
-
-## RF06 — Comunicação Cliente-Backend
-O sistema deve permitir a comunicação entre o Django e Apollo via HTTP/GraphQL na arquitetura proposta. Atualmente as chamadas de domínio são locais no Django.
-
-## RF07 — Persistência de Dados
-O sistema deve persistir as informações de restaurante, menu, produtos e pedidos utilizando o ORM Django e SQLite na demonstração. A proposta de produção usa Prisma e PostgreSQL.
-
-## Observações
-
-- Os controles de autenticação e autorização atuais e as evoluções planejadas estão no [System Design](../architecture/system-design.md#8-segurança).
-- Este documento poderá ser atualizado conforme o desenvolvimento evolui.
+[Rotas](../../apps/web/config/urls.py) · [Formulários da equipe](../../apps/web/shop/staff_forms.py) · [Modelos](../../apps/web/shop/models.py) · [Arquitetura](../architecture/system-architecture.md)

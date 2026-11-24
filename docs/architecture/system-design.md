@@ -6,7 +6,7 @@ O ByteBistro é um sistema de cardápio digital e gerenciamento de pedidos desen
 
 Na versão atual, o Django executa a interface web, o painel e as regras de negócio, com persistência em SQLite pelo ORM Django. O checkout já registra pedidos e permite acompanhar seu andamento e gerenciá-los no painel. [Arquitetura atual](system-architecture.md)
 
-A arquitetura distribuída é uma proposta que separa interface, backend e persistência para preparar a aplicação para operar em uma infraestrutura escalável e de alta disponibilidade na Amazon Web Services (AWS).
+A configuração distribuída implementa a consulta de status via GraphQL e o processamento assíncrono de pedidos. O Terraform define a infraestrutura AWS, cuja entrada pública e frotas ainda aguardam ativação. [Estado da implantação](../deployment/status.md)
 
 ### Objetivos do sistema
 
@@ -21,54 +21,32 @@ A arquitetura distribuída é uma proposta que separa interface, backend e persi
 
 ## 2. Arquitetura da aplicação
 
-A arquitetura lógica proposta é dividida em três componentes principais:
-
 | Componente | Tecnologia | Responsabilidade |
 |---|---|---|
-| Cliente web | Django e Requests | Interface e comunicação com a API |
-| Backend | Node.js, TypeScript e Apollo Server | Regras de negócio e processamento das requisições |
-| Persistência | Prisma ORM e PostgreSQL | Acesso e armazenamento dos dados |
+| Aplicação web | Django e `urllib.request` | Vitrine, painel, sessão, regras de negócio, checkout e consulta de status pela API quando configurada |
+| API de status | Node.js, TypeScript e Apollo Server | Consulta autenticada de status do pedido |
+| Worker | Node.js, Prisma, SQS e SNS | Publicação da outbox e encaminhamento de notificações |
+| Persistência | SQLite na demonstração e PostgreSQL na configuração distribuída | Django gerencia modelos e migrações. Prisma consulta pedidos e processa a outbox. |
 
-O uso de Docker é proposto para padronizar os ambientes e executar os serviços em contêineres.
+O projeto inclui Dockerfiles para web, API e worker. [Guia Docker](../deployment/docker-guide.md)
 
 ### 2.1. Cliente web — Django
 
-Na arquitetura proposta, o Django representa a camada de apresentação da aplicação.
-
-É responsável por disponibilizar as páginas, receber as interações dos usuários e encaminhar as solicitações ao backend.
-
-O Django deverá chamar a API interna por HTTP com operações GraphQL. Requests é a biblioteca proposta para o adaptador.
+O Django renderiza páginas, mantém sessão e permissões e valida as requisições do cliente. Quando `BYTEBISTRO_GRAPHQL_URL` está configurada, o adaptador consulta o status via HTTP/GraphQL com token de serviço, dados da sessão e timeout. [Adaptador](../../apps/web/shop/graphql.py)
 
 ### 2.2. Backend — Node.js e TypeScript
 
-O backend proposto centralizará o processamento das operações do sistema.
-
-O Apollo Server disponibiliza a API GraphQL, enquanto os resolvers recebem as operações e encaminham o processamento para as respectivas regras de negócio.
-
-Essa separação permite que a interface e a lógica de negócio evoluam de maneira independente.
+O Apollo expõe a query `orderStatus`. O resolver consulta o pedido por ID e limita o resultado à sessão ou conta informada pelo Django. A transferência das escritas de negócio é uma evolução. [Serviços](../../apps/services/README.md) · [Contrato proposto](system-architecture.md#contrato-proposto)
 
 ### 2.3. Persistência — PostgreSQL
 
-O PostgreSQL é responsável pelo armazenamento persistente das informações.
-
-O Prisma ORM atua como camada de acesso ao banco de dados, permitindo que o backend consulte, insira, atualize e exclua registros.
-
-O banco de dados não deve ser acessado diretamente pelo cliente web.
+O Django grava pedidos no PostgreSQL e aplica as migrações. A API acessa o PostgreSQL via Prisma para ler o status. O worker consulta e atualiza a outbox. [Banco de dados](database.md)
 
 ## 3. Comunicação entre os componentes
 
-Hoje, o navegador envia formulários e consultas de status ao Django. As views chamam serviços Python no mesmo processo e acessam o SQLite via ORM. Na arquitetura distribuída proposta, o fluxo será o seguinte.
+Na demonstração, o navegador envia formulários e consultas de status ao Django. As views chamam serviços Python no mesmo processo e acessam o SQLite via ORM.
 
-1. O usuário acessa o ByteBistro pelo navegador.
-2. O Django disponibiliza a interface web.
-3. Quando necessário, o Django realiza uma requisição HTTP para o backend.
-4. O Apollo Server recebe a operação GraphQL.
-5. Os resolvers encaminham a operação para a lógica correspondente.
-6. O Prisma ORM executa as operações no PostgreSQL.
-7. O backend retorna o resultado.
-8. O Django apresenta a resposta ao usuário.
-
-Essa organização mantém a persistência e as regras de negócio centralizadas no backend.
+Na configuração distribuída, o navegador consulta o mesmo endereço de acompanhamento no Django. O Django envia a query `orderStatus` ao Apollo. O resolver consulta o PostgreSQL via Prisma e o Django devolve o JSON ao navegador. Uma sessão sem acesso recebe 404. Uma falha temporária da API recebe 503.
 
 ## 4. Fluxo de realização de pedidos
 
@@ -76,27 +54,15 @@ O processo de realização de um pedido representa um dos principais fluxos de n
 
 ### Fluxo atual
 
-O Django mantém o carrinho em sessão, valida o destino e recalcula preços no servidor. O checkout grava o pedido e seu evento inicial na mesma transação SQLite. Reenvios autorizados com o mesmo token retornam o pedido existente. A equipe altera a etapa pelo painel e o navegador consulta o status periodicamente. [Serviço de checkout](../../client/shop/services.py) · [Acompanhamento](../../client/shop/views.py)
+O Django mantém o carrinho em sessão, valida o destino e recalcula preços no servidor. O checkout grava o pedido e seu evento inicial na mesma transação SQLite. Reenvios autorizados com o mesmo token retornam o pedido existente. A equipe altera a etapa pelo painel e o navegador consulta o status periodicamente. [Serviço de checkout](../../apps/web/shop/services.py) · [Acompanhamento](../../apps/web/shop/views.py)
 
-### Fluxo proposto
+### Fluxo na configuração distribuída
 
-1. O cliente acessa o cardápio.
-2. Visualiza as categorias e os produtos disponíveis.
-3. Seleciona os produtos desejados.
-4. Adiciona os itens ao carrinho.
-5. Confirma o pedido.
-6. A aplicação envia a solicitação ao backend.
-7. O backend valida os dados recebidos.
-8. O pedido é registrado no PostgreSQL.
-9. Após a confirmação da persistência, tarefas complementares podem ser encaminhadas para processamento assíncrono.
-10. Os workers executam essas tarefas.
-11. O sistema pode distribuir notificações e atualizar informações do pedido.
-
-O processamento assíncrono é uma evolução arquitetural proposta para evitar que operações secundárias aumentem o tempo de resposta das requisições principais.
+O Django valida e grava o pedido no PostgreSQL. Com a outbox habilitada, grava também o evento a ser publicado, na mesma transação. O worker processa esse evento depois do commit, fora da requisição de checkout.
 
 ## 5. Arquitetura de mensageria
 
-A proposta utiliza Amazon SQS, Amazon SNS e workers independentes.
+A configuração distribuída usa Amazon SQS, Amazon SNS e uma frota de workers independente da frota web.
 
 O SQS recebe tarefas que não precisam ser executadas durante a requisição principal.
 
@@ -106,7 +72,7 @@ O SNS pode distribuir notificações para diferentes consumidores.
 
 A Dead Letter Queue (DLQ) recebe mensagens que não conseguiram ser processadas após as tentativas configuradas.
 
-Com Transactional Outbox, o backend grava o pedido e o evento na mesma transação PostgreSQL. Depois do commit, um publicador encaminha o evento ao SQS. Como uma entrega pode se repetir, o worker deve usar um identificador estável por evento e excluir a mensagem somente depois de concluir o processamento.
+O worker publica o evento no SQS, consome a fila e notifica o SNS. Ele usa um identificador estável por evento e exclui a mensagem após o processamento. Assinantes devem deduplicar pelo identificador, pois uma falha entre a publicação ao SNS e a confirmação no banco pode causar reentrega.
 
 Também devem ser considerados:
 
@@ -178,7 +144,9 @@ Django, API Node.js e workers terão responsabilidades distintas. A frota de wor
 
 **Terraform** — criação e gerenciamento da infraestrutura como código.
 
-**GitHub Actions** — automação de testes, build e implantação.
+**GitHub Actions** — workflow de testes, compilação e verificação do ZIP de release.
+
+**CodeBuild** — pipeline definido para publicar imagens e executar a migração em um job separado. O último release foi publicado com Docker local por causa da cota da conta. [CI/CD](../deployment/ci-cd.md) · [Estado da implantação](../deployment/status.md)
 
 ## 7. Escalabilidade e disponibilidade
 
@@ -196,7 +164,7 @@ As instâncias da aplicação devem ser tratadas como recursos substituíveis. A
 
 ## 8. Segurança
 
-O painel atual usa autenticação por sessão, grupos de acesso e proteção CSRF. Clientes acompanham apenas pedidos associados à própria sessão ou conta. [Rotas e controles](../../client/shop/staff_views.py)
+O painel atual usa autenticação por sessão, grupos de acesso e proteção CSRF. Clientes acompanham apenas pedidos associados à própria sessão ou conta. [Rotas e controles](../../apps/web/shop/staff_views.py)
 
 Para a infraestrutura proposta, estão previstos os seguintes controles.
 
@@ -211,16 +179,13 @@ Para a infraestrutura proposta, estão previstos os seguintes controles.
 
 ## 9. Observabilidade
 
-Na proposta, o CloudWatch acompanhará os seguintes indicadores.
+O Terraform define grupos de logs e alarmes do CloudWatch para os seguintes indicadores.
 
-- CPU das instâncias e memória coletada por agente.
-- Saúde das instâncias.
-- Requisições e erros.
-- Logs da aplicação.
-- Métricas do RDS.
-- Quantidade de mensagens nas filas.
-- Falhas de processamento.
-- Alarmes de infraestrutura.
+- Alvos web saudáveis quando a frota estiver ativa.
+- Espaço livre no RDS.
+- Mensagens na DLQ e idade da mensagem mais antiga no SQS.
+
+As políticas de escalabilidade usam CPU e volume da fila. [Monitoramento](../../infrastructure/terraform/operations.tf) · [Políticas das frotas](../../infrastructure/terraform/compute.tf)
 
 ## 10. Considerações finais
 
@@ -230,4 +195,4 @@ A proposta de infraestrutura AWS amplia essa arquitetura com balanceamento de ca
 
 O resultado esperado é uma aplicação preparada para evoluir de um ambiente de desenvolvimento para uma implantação mais robusta, segura e escalável.
 
-**Estado de implementação.** A implantação em preparação usa Django para as regras de negócio, Apollo/Prisma para consultar o status e um worker com outbox, SQS e SNS. O Django chama a API interna com o cliente HTTP da biblioteca padrão Python. O desenho acima também descreve a evolução para migrar regras de negócio ao backend Node.js. [Guia da infraestrutura](../../infrastructure/terraform/README.md)
+[Guia da infraestrutura](../../infrastructure/terraform/README.md) · [Estado da implantação](../deployment/status.md)

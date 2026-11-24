@@ -2,10 +2,10 @@ flowchart TB
     USER["CLIENTE<br/>Navegador Web"]
 
     subgraph ENTRY["1. ENTRADA E DISTRIBUIÇÃO"]
-        R53["Route 53<br/>DNS"]
+        R53["Route 53<br/>Domínio próprio (opcional)"]
         CF["CloudFront<br/>Distribuição"]
         WAF["AWS WAF<br/>Proteção"]
-        ACM["ACM<br/>Certificado HTTPS"]
+        ACM["ACM<br/>Domínio próprio (opcional)"]
         ALB["Application Load Balancer"]
 
         R53 --> CF --> ALB
@@ -19,10 +19,10 @@ flowchart TB
         end
 
         subgraph APP["SUB-REDES PRIVADAS — EC2 / AUTO SCALING"]
-            WEB["Django<br/>Interface Web"]
-            API["Node.js + Apollo<br/>Backend GraphQL"]
-            WORKER["Workers<br/>Processamento assíncrono"]
-            WEB --> API
+            WEB["Django<br/>Vitrine, painel e checkout"]
+            API["Node.js + Apollo<br/>Consulta GraphQL de status"]
+            WORKER["Worker<br/>Publicador e consumidor"]
+            WEB -->|Consulta de status| API
         end
 
         subgraph DATA["CAMADA PRIVADA DE DADOS"]
@@ -30,15 +30,24 @@ flowchart TB
         end
 
         ALB --> WEB
-        API --> RDS
-        API --> SQS["SQS<br/>Fila de tarefas"]
-        SQS --> WORKER
-        SQS -. Falhas repetidas .-> DLQ["SQS DLQ<br/>Mensagens com falha"]
-        WORKER --> SNS["SNS<br/>Notificações"]
+        WEB -->|Pedidos e outbox| RDS
+        API -->|Leitura| RDS
+        WORKER -->|Outbox| RDS
         NAT -. Saída .-> APP
     end
 
-    subgraph STORAGE["3. ARMAZENAMENTO"]
+    subgraph MESSAGING["3. MENSAGERIA GERENCIADA"]
+        SQS["SQS<br/>Fila de eventos"]
+        DLQ["SQS DLQ<br/>Falhas repetidas"]
+        SNS["SNS<br/>Notificações"]
+        SQS -. Redrive .-> DLQ
+    end
+
+    WORKER -->|Publica| SQS
+    SQS -->|Entrega| WORKER
+    WORKER -->|Notifica| SNS
+
+    subgraph STORAGE["4. ARMAZENAMENTO"]
         S3["Amazon S3<br/>Imagens e arquivos"]
         ECR["Amazon ECR<br/>Imagens Docker"]
     end
@@ -46,7 +55,7 @@ flowchart TB
     CF --> S3
     ECR -. Imagens para EC2 .-> APP
 
-    subgraph SECURITY["4. SEGURANÇA E OPERAÇÃO"]
+    subgraph SECURITY["5. SEGURANÇA E OPERAÇÃO"]
         IAM["IAM<br/>Permissões"]
         SM["Secrets Manager<br/>Credenciais"]
         CW["CloudWatch<br/>Logs, métricas e alarmes"]
@@ -55,10 +64,11 @@ flowchart TB
     end
 
     IAM -. Autoriza acesso .-> APP
-    SM -. Fornece segredos .-> API
+    SM -. Fornece segredos .-> APP
     APP -. Logs e métricas .-> CW
     RDS -. Métricas .-> CW
     CT -. Auditoria .-> CW
     RDS -. Backup .-> BACKUP
 
-    USER --> R53
+    USER -->|HTTPS| CF
+    USER -. DNS com domínio próprio .-> R53

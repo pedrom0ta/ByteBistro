@@ -4,7 +4,7 @@ O Django renderiza o cardápio em português e mantém o carrinho na sessão do 
 
 ## Primeira execução
 
-Use Python 3.11 ou 3.12 com pip. A partir da pasta `client`, no PowerShell:
+Use Python 3.11 ou 3.12 com pip. A partir da pasta `apps/web`, no PowerShell:
 
 ```powershell
 python -m venv .venv
@@ -19,7 +19,7 @@ Abra [o site local](http://127.0.0.1:8000/). Em Linux/macOS, use `.venv/bin/pyth
 
 ### Painel do restaurante
 
-Após migrar o banco, crie a primeira conta de administrador a partir de `client`. O Django solicitará as credenciais no terminal.
+Após migrar o banco, crie a primeira conta de administrador a partir de `apps/web`. O Django solicitará as credenciais no terminal.
 
 ```powershell
 .\.venv\Scripts\python manage.py createsuperuser
@@ -33,7 +33,7 @@ As migrações importam os seis produtos e mesas iniciais. O painel usa os mesmo
 
 Os módulos ficam em `shop/staff_views.py`, `shop/staff_forms.py`, `shop/operations.py` e `shop/storefront.py`. A interface usa `templates/staff/`, `static/css/operations.css` e `static/js/operations.js`. O histórico de etapas e as movimentações de estoque registram responsável e horário. Atualizações antigas anteriores ao painel preservam a etapa existente. As migrações registram a data de recebimento desses pedidos, pois o banco anterior guardava apenas a etapa atual.
 
-Na integração futura, o backend GraphQL deverá assumir permissões, transições, eventos e gestão de catálogo. A consulta periódica pode ser substituída por eventos ou subscriptions. Pagamento eletrônico e estorno dependem do provedor. O estoque é movimentado manualmente até existir vínculo entre receitas e insumos.
+O painel grava permissões, transições e mudanças de catálogo no Django. A tela do cliente consulta o status periodicamente. O estoque é movimentado manualmente. Integração com receitas, pagamento eletrônico e estorno são evoluções.
 
 ### Site do cliente
 
@@ -46,7 +46,7 @@ Na integração futura, o backend GraphQL deverá assumir permissões, transiç�
 
 ### Atualizar o andamento
 
-Em um segundo terminal, na pasta `client`, use o número exibido no acompanhamento:
+Em um segundo terminal, na pasta `apps/web`, use o número exibido no acompanhamento:
 
 ```powershell
 .\.venv\Scripts\python manage.py avancar_pedido NUMERO_DO_PEDIDO
@@ -76,7 +76,7 @@ Os testes usam um banco temporário. Cobrem restaurante, delivery com cadastro e
 | `shop/management/commands/` | Avanço manual da etapa do pedido |
 | `templates/`, `templates/components/` | Telas, navegação, cards e resumos reutilizáveis |
 | `static/` | Fotografias, marca, estilos e comportamento do navegador |
-| `shop/tests.py` | Testes automatizados dos fluxos |
+| `shop/tests.py`, `shop/test_operations.py` | Testes de checkout, acompanhamento e operação do restaurante |
 
 ## Recursos visuais
 
@@ -89,16 +89,10 @@ A marca ByteBistro foi recortada do cabeçalho da referência fornecida. As foto
 - [Batatas](https://images.unsplash.com/photo-1573080496219-bb080dd4f877)
 - [Brownie](https://images.unsplash.com/photo-1606313564200-e75d5e30476c)
 
-## Integração futura
+## Integração e evolução
 
-O repositório original define o contrato arquitetural Django → HTTP/GraphQL → Node.js/Apollo → Prisma → PostgreSQL. O checkout inicial continha documentação de planejamento em `backend/`, `client/` e `database/`. A implementação Django ocupa a pasta já reservada ao cliente.
+Com `BYTEBISTRO_GRAPHQL_URL` configurada, o Django consulta o status na API GraphQL em [`apps/services/`](../services/README.md). O adaptador usa `GRAPHQL_SERVICE_TOKEN`, identidade da sessão e timeout. O checkout e as operações do painel gravam pelo ORM Django. No modo distribuído, o checkout também pode gravar a outbox na mesma transação.
 
-Quando o esquema Apollo estiver disponível:
+O modo local de verificação exibe o código no console. Para delivery público, `SMS_PROVIDER` precisa apontar para um provedor que implemente `issue(phone) -> challenge` e `verify(challenge, code) -> bool`. A configuração distribuída usa cache compartilhado no PostgreSQL.
 
-1. Implemente o adaptador HTTP em `shop/` e leia o endpoint e as credenciais de variáveis de ambiente do processo Django. Use HTTPS, timeout e tratamento de erros de transporte e do campo GraphQL `errors`.
-2. Substitua as operações locais de catálogo, perfil/endereço, histórico, cotação e criação de pedido pelas queries e mutations do esquema publicado. Mantenha a representação de valores em centavos na interface e valide a conversão no adaptador. O backend deve recalcular preço, desconto, taxa e disponibilidade.
-3. Encaminhe a chave única do checkout para a mutation de criação. O serviço que grava o pedido deve impor unicidade e devolver o mesmo pedido em uma repetição autorizada. Propague a identidade verificada no servidor e confira o proprietário nas consultas de histórico e status.
-4. Configure `SMS_PROVIDER` com o caminho Python de uma classe que implemente `issue(phone) -> challenge` e `verify(challenge, code) -> bool`. O provedor de produção deve emitir e verificar o SMS no serviço real. O provedor de console exige modo de desenvolvimento. Use cache compartilhado para limites, expiração e uso único em múltiplas instâncias.
-5. Substitua a consulta local de status por uma query do backend. O endpoint JSON consumido pela Fetch API também pode evoluir para eventos ou subscriptions.
-
-O banco `demo.sqlite3`, a chave local `.local.key` e as sessões pertencem à demonstração. Use apenas dados fictícios. Para execução fora do desenvolvimento, configure `DJANGO_DEBUG=0`, `DJANGO_SECRET_KEY`, hosts e cookies seguros, um serviço de identidade e armazenamento compartilhado. Integrações com SMS comercial, pagamentos e API distribuída ficam para a etapa seguinte.
+O banco `demo.sqlite3` e a chave `.local.key` são dados locais da demonstração. Use dados fictícios. O [contrato proposto](../../docs/architecture/system-architecture.md#contrato-proposto) descreve a opção de transferir as escritas de negócio para o Node.js. [Estado da implantação](../../docs/deployment/status.md)

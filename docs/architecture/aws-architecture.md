@@ -1,16 +1,16 @@
 # Diagrama de infraestrutura AWS
 
-O diagrama apresenta a infraestrutura **proposta** para o ByteBistro em duas zonas de disponibilidade. [System Design](system-design.md#6-arquitetura-de-infraestrutura-aws) · [Fonte Mermaid editável](diagrams/aws-infrastructure.mmd)
+O diagrama apresenta a configuração distribuída definida no Terraform para duas zonas de disponibilidade. A demonstração pública usa uma EC2 independente. [Estado da implantação](../deployment/status.md) [System Design](system-design.md#6-arquitetura-de-infraestrutura-aws) · [Fonte Mermaid editável](diagrams/aws-infrastructure.mmd)
 
 ```mermaid
 flowchart TB
     USER["CLIENTE<br/>Navegador Web"]
 
     subgraph ENTRY["1. ENTRADA E DISTRIBUIÇÃO"]
-        R53["Route 53<br/>DNS"]
+        R53["Route 53<br/>Domínio próprio (opcional)"]
         CF["CloudFront<br/>Distribuição"]
         WAF["AWS WAF<br/>Proteção"]
-        ACM["ACM<br/>Certificado HTTPS"]
+        ACM["ACM<br/>Domínio próprio (opcional)"]
         ALB["Application Load Balancer"]
 
         R53 --> CF --> ALB
@@ -24,10 +24,10 @@ flowchart TB
         end
 
         subgraph APP["SUB-REDES PRIVADAS — EC2 / AUTO SCALING"]
-            WEB["Django<br/>Interface Web"]
-            API["Node.js + Apollo<br/>Backend GraphQL"]
-            WORKER["Workers<br/>Processamento assíncrono"]
-            WEB --> API
+            WEB["Django<br/>Vitrine, painel e checkout"]
+            API["Node.js + Apollo<br/>Consulta GraphQL de status"]
+            WORKER["Worker<br/>Publicador e consumidor"]
+            WEB -->|Consulta de status| API
         end
 
         subgraph DATA["CAMADA PRIVADA DE DADOS"]
@@ -35,15 +35,24 @@ flowchart TB
         end
 
         ALB --> WEB
-        API --> RDS
-        API --> SQS["SQS<br/>Fila de tarefas"]
-        SQS --> WORKER
-        SQS -. Falhas repetidas .-> DLQ["SQS DLQ<br/>Mensagens com falha"]
-        WORKER --> SNS["SNS<br/>Notificações"]
+        WEB -->|Pedidos e outbox| RDS
+        API -->|Leitura| RDS
+        WORKER -->|Outbox| RDS
         NAT -. Saída .-> APP
     end
 
-    subgraph STORAGE["3. ARMAZENAMENTO"]
+    subgraph MESSAGING["3. MENSAGERIA GERENCIADA"]
+        SQS["SQS<br/>Fila de eventos"]
+        DLQ["SQS DLQ<br/>Falhas repetidas"]
+        SNS["SNS<br/>Notificações"]
+        SQS -. Redrive .-> DLQ
+    end
+
+    WORKER -->|Publica| SQS
+    SQS -->|Entrega| WORKER
+    WORKER -->|Notifica| SNS
+
+    subgraph STORAGE["4. ARMAZENAMENTO"]
         S3["Amazon S3<br/>Imagens e arquivos"]
         ECR["Amazon ECR<br/>Imagens Docker"]
     end
@@ -51,7 +60,7 @@ flowchart TB
     CF --> S3
     ECR -. Imagens para EC2 .-> APP
 
-    subgraph SECURITY["4. SEGURANÇA E OPERAÇÃO"]
+    subgraph SECURITY["5. SEGURANÇA E OPERAÇÃO"]
         IAM["IAM<br/>Permissões"]
         SM["Secrets Manager<br/>Credenciais"]
         CW["CloudWatch<br/>Logs, métricas e alarmes"]
@@ -60,13 +69,14 @@ flowchart TB
     end
 
     IAM -. Autoriza acesso .-> APP
-    SM -. Fornece segredos .-> API
+    SM -. Fornece segredos .-> APP
     APP -. Logs e métricas .-> CW
     RDS -. Métricas .-> CW
     CT -. Auditoria .-> CW
     RDS -. Backup .-> BACKUP
 
-    USER --> R53
+    USER -->|HTTPS| CF
+    USER -. DNS com domínio próprio .-> R53
 ```
 
-Os grupos representam responsabilidades. Na implantação proposta, o ALB usa sub-redes públicas da VPC, enquanto SQS, DLQ e SNS são serviços gerenciados externos às sub-redes. O Route 53 resolve o domínio e o navegador se conecta ao CloudFront por HTTPS. A seta da API para o SQS resume a publicação de eventos após o commit, conforme a [estratégia de outbox](system-design.md#5-arquitetura-de-mensageria).
+O ALB usa sub-redes públicas. SQS, DLQ e SNS são serviços gerenciados externos às sub-redes. Com domínio próprio, o Route 53 resolve o nome e o ACM fornece o certificado. No modo padrão, o navegador usa o endereço HTTPS do CloudFront. O Django grava a outbox junto com o pedido, e o worker encaminha o evento ao SQS depois do commit. [Estratégia de outbox](system-design.md#5-arquitetura-de-mensageria)

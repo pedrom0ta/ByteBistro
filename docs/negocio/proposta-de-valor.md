@@ -9,8 +9,8 @@ O ByteBistro propõe centralizar, em um único sistema, o fluxo de apresentaçã
 ## Diferencial
 
 - Fluxo único e organizado entre cardápio e pedido
-- Separação clara entre cliente (interface) e backend (regras de negócio e dados)
-- Arquitetura pensada desde o início para permitir evolução futura (documentada em [`docs/arquitetura/arquitetura-futura.md`](../arquitetura/arquitetura-futura.md))
+- Fluxos próprios para o cliente no navegador e para a equipe no painel
+- Arquitetura pensada desde o início para permitir evolução futura (documentada nas [decisões arquiteturais](../architecture/architecture-decisions.md))
 
 ## Valor para o restaurante
 
@@ -22,4 +22,4 @@ Oferece uma forma clara e organizada de visualizar o menu, selecionar produtos e
 
 ## Observação
 
-Este documento descreve a proposta de valor conceitual do projeto, no estágio atual de planejamento. Não são apresentadas métricas, estudos de mercado ou validações externas, pois estes não fazem parte do escopo definido até o momento.
+A entrega acadêmica demonstra esses fluxos no MVP. Métricas comerciais e validação de mercado estão fora do escopo. [Resumo da entrega](../apresentacao/material-academico.md)

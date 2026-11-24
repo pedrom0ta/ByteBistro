@@ -106,9 +106,9 @@ def migrate():
         "BYTEBISTRO_ORIGIN_HOST": "migration.invalid",
         "PGSSLROOTCERT": bundle,
     }
-    client = Path(__file__).resolve().parents[2] / "client"
+    web_directory = Path(__file__).resolve().parents[2] / "apps" / "web"
     for command in (["migrate", "--noinput"], ["createcachetable"]):
-        subprocess.run([sys.executable, "manage.py", *command], cwd=client, env=env, check=True)
+        subprocess.run([sys.executable, "manage.py", *command], cwd=web_directory, env=env, check=True)
     with psycopg.connect(
         host=host, dbname=database, user=web["PGUSER"], password=web["PGPASSWORD"],
         sslmode="verify-full", sslrootcert=bundle, connect_timeout=10,

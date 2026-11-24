@@ -1,6 +1,6 @@
 # Roteiro de apresentação do ByteBistro
 
-**Status** ✅ Roteiro completo
+Apresentação da disciplina de Sistemas Distribuídos. Para demonstrar a revisão do repositório, execute o Django localmente e crie a conta do painel antes da apresentação. [Guia local](../../apps/web/README.md)
 
 ## 1. Problema e proposta — 1 minuto
 
@@ -10,17 +10,17 @@ Apresente o problema de receber e acompanhar pedidos em restaurantes. Mostre com
 
 1. Abra o cardápio e selecione uma categoria e um produto.
 2. Adicione o produto ao carrinho e confirme um pedido na mesa.
-3. Abra o painel em outra janela com um usuário de demonstração. Aceite o pedido e marque-o como pronto.
-4. Volte à tela do cliente e mostre a atualização do status. Explique que o fluxo atual roda em Django e SQLite.
+3. Abra o painel em outra janela com a conta criada para a demonstração. Em **Pedidos**, aceite o pedido. Em **Cozinha**, marque-o como pronto.
+4. Volte à tela de acompanhamento do cliente e confira o status. Conclua o pedido no painel e mostre o histórico de transições.
 
-[Como executar a demonstração](../../client/README.md)
+[Como executar a demonstração](../../apps/web/README.md)
 
 ## 3. System Design e arquitetura AWS — 3 minutos
 
-Mostre como a aplicação atual grava pedidos e controla suas transições. Depois, apresente a arquitetura proposta com Django, Apollo/GraphQL e PostgreSQL. Use o diagrama AWS para explicar a entrada HTTPS, a distribuição em duas zonas, o banco Multi-AZ e o fluxo assíncrono com SQS, workers e SNS. Apresente o Terraform como infraestrutura preparada para provisionamento.
+Mostre o que o Django executa no MVP e o ponto em que a integração usa Apollo/GraphQL para consultar o status no PostgreSQL. Use o diagrama para explicar a outbox, o worker, o SQS e o SNS. Apresente a EC2 de demonstração e o estado do rollout distribuído com CloudFront separadamente. [Estado da implantação](../deployment/status.md)
 
 [System Design](../architecture/system-design.md) · [Diagrama AWS](../architecture/aws-architecture.md) · [Terraform](../../infrastructure/terraform/README.md)
 
 ## 4. Validação e encerramento — 2 minutos
 
-Apresente a cobertura da suíte Django, incluindo reenvio de checkout, permissões do painel e concorrência no aceite. Encerre com os próximos passos de integração e implantação e reserve tempo para perguntas.
+Apresente as verificações de reenvio de checkout, permissões do painel, acompanhamento privado e concorrência. Mostre o que foi testado em integração local com Apollo e PostgreSQL e deixe explícito que a mensageria na AWS ainda está por homologar. [Verificações do projeto](../deployment/ci-cd.md)

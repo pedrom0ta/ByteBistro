@@ -22,8 +22,8 @@ Carrinho
  Pedido
 ```
 
-Cada restaurante cadastrado no sistema disponibiliza um menu, composto por produtos. O cliente seleciona produtos, monta um carrinho e finaliza um pedido, que é então registrado pelo sistema.
+O MVP permite configurar um estabelecimento e disponibilizar seu cardápio por categorias. O cliente seleciona produtos, monta o carrinho e finaliza o pedido. A equipe acompanha o preparo e a entrega no painel.
 
 ## Status atual
 
-O modelo de negócio do ByteBistro está em fase de definição, como parte do planejamento inicial do projeto acadêmico. Aspectos como formas de monetização, parcerias ou estratégias comerciais **ainda não foram definidos** e não são tratados neste documento, para evitar suposições não sustentadas pelo escopo atual do projeto.
+O projeto entrega uma demonstração acadêmica do fluxo operacional. Monetização, parcerias e estratégia comercial ficam fora do escopo da entrega.

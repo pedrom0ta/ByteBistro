@@ -5,7 +5,8 @@
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
-    "build": "prisma generate && tsc"
+    "build": "prisma generate && tsc",
+    "test": "npm run build && node --test"
   },
   "dependencies": {
     "@apollo/server": "^5.5.0",

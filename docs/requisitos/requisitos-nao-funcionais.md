@@ -1,41 +1,18 @@
-# Requisitos Não Funcionais
+# Requisitos não funcionais
 
-Este documento lista os requisitos não funcionais planejados para o ByteBistro. Itens ainda não definidos com precisão estão marcados como **"a definir"**.
+| Requisito | Implementação e validação |
+| --- | --- |
+| RNF01 — Comunicação | A consulta interna de status usa HTTP/GraphQL. O adaptador limita o tempo de espera e trata erros de transporte e de resposta. |
+| RNF02 — Serviços | A API de status e o worker são escritos em TypeScript e executados em Node.js. A API usa Apollo Server. |
+| RNF03 — Interface web | Django renderiza os templates HTML e entrega a vitrine e o painel, com CSS e JavaScript. |
+| RNF04 — Persistência | A demonstração usa SQLite. A configuração distribuída usa PostgreSQL via Django e Prisma, com migrações gerenciadas pelo Django. |
+| RNF05 — Hospedagem | A demonstração pública está na EC2. O ambiente com CloudFront, ALB e frotas é definido em Terraform e aguarda ativação. |
+| RNF06 — Organização | A aplicação web, os serviços distribuídos, a infraestrutura e a documentação têm diretórios próprios. |
+| RNF07 — Versionamento e verificação | O código é versionado no GitHub. O workflow foi configurado para pull requests e pushes para a `main`, com verificações de Django, Node e empacotamento. |
+| RNF08 — Segurança | A aplicação usa sessões, permissões do painel, proteção CSRF e acesso ao pedido pela própria sessão ou conta. A configuração distribuída prevê rede segmentada, IAM, Secrets Manager e TLS no banco. |
+| RNF09 — Escalabilidade | O Terraform define ALB, frotas web e worker separadas e RDS Multi-AZ. A capacidade sob carga permanece por medir. |
+| RNF10 — Resiliência | Checkout idempotente, outbox transacional e retentativas são contemplados na implementação. O Terraform declara DLQ, alarmes e backup do RDS. A homologação da mensageria e o teste de restauração permanecem em aberto. |
 
-## RNF01 — Comunicação
-Na proposta distribuída, a comunicação entre Django e backend deve ocorrer via HTTP, utilizando GraphQL como linguagem de consulta.
+Os objetivos de latência, throughput e recuperação ainda aguardam definição e testes.
 
-## RNF02 — Tecnologia do Backend
-O backend deve ser desenvolvido em Node.js com TypeScript, utilizando Apollo Server para expor a API GraphQL.
-
-## RNF03 — Tecnologia do Cliente
-A interface web executa em Python e Django, com templates HTML e JavaScript.
-
-## RNF04 — Persistência
-A demonstração usa ORM Django e SQLite. A evolução usa PostgreSQL e Prisma para o domínio.
-
-## RNF05 — Hospedagem
-A hospedagem de produção permanece a definir.
-
-## RNF06 — Organização do Código
-O código deve ser organizado de forma modular, separando claramente as responsabilidades de cliente, backend, banco de dados e infraestrutura.
-
-## RNF07 — Versionamento
-O projeto deve utilizar Git e GitHub para controle de versão, seguindo a organização de branches definida no README principal.
-
-## RNF08 — Segurança (conceitual)
-Conceitos de segurança (autenticação, autorização, secrets, tokens, firewall, Security Group, segmentação de rede) devem ser considerados na evolução do sistema.
-*Nível de implementação: a definir.*
-
-## RNF09 — Escalabilidade (conceitual)
-O sistema deve ser discutido academicamente quanto à sua capacidade de evoluir para suportar escalabilidade vertical e horizontal.
-*Implementação: a definir, tratada como evolução futura.*
-
-## RNF10 — Resiliência (conceitual)
-Conceitos de resiliência (retry, circuit breaker, filas, DLQ, backup, disaster recovery) devem ser discutidos como parte da evolução arquitetural do sistema.
-*Implementação: a definir, tratada como evolução futura.*
-
-## Observações
-
-- Requisitos de desempenho (tempo de resposta, throughput) ainda não foram definidos: **a definir**.
-- Este documento reflete o estágio atual de planejamento do projeto e poderá ser atualizado conforme o desenvolvimento avança.
+[System Design](../architecture/system-design.md) · [Estado da implantação](../deployment/status.md) · [CI/CD](../deployment/ci-cd.md)

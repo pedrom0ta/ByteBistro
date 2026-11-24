@@ -15,4 +15,4 @@ O domínio de restaurantes foi escolhido pelos seguintes motivos:
 
 ## Relação com a disciplina
 
-O domínio escolhido serve como base prática para a aplicação dos conceitos estudados na disciplina de Sistemas Distribuídos, na demonstração web e na proposta de integração distribuída detalhada em [`docs/arquitetura/arquitetura-futura.md`](../arquitetura/arquitetura-futura.md).
+O domínio serve de base para demonstrar conceitos de Sistemas Distribuídos, como idempotência do checkout, consulta de status via GraphQL e processamento por outbox. [Arquitetura](../architecture/system-architecture.md)

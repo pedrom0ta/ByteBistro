@@ -28,6 +28,7 @@ async function publishOutbox() {
   });
 
   for (const event of events) {
+    if (stop.signal.aborted) break;
     const leaseToken = randomUUID();
     const claim = await prisma.outbox.updateMany({
       where: { id: event.id, sentAt: null, ...due },
@@ -53,9 +54,10 @@ async function consume() {
     QueueUrl: queueUrl,
     MaxNumberOfMessages: 1,
     WaitTimeSeconds: 20,
-  }), { abortSignal: stop.signal });
+  }), { abortSignal: AbortSignal.any([stop.signal, AbortSignal.timeout(35_000)]) });
 
   for (const message of response.Messages ?? []) {
+    if (stop.signal.aborted) break;
     const id = message.Body;
     const receipt = message.ReceiptHandle;
     if (!id || !receipt || !uuidPattern.test(id)) {
@@ -110,5 +112,10 @@ async function processLoop(task: () => Promise<void>, delay: number) {
   }
 }
 
-await Promise.all([processLoop(publishOutbox, 2000), processLoop(consume, 0)]);
-await prisma.$disconnect();
+try {
+  await Promise.all([processLoop(publishOutbox, 2000), processLoop(consume, 0)]);
+} finally {
+  sqs.destroy();
+  sns.destroy();
+  await prisma.$disconnect();
+}

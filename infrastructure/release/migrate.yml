@@ -5,7 +5,7 @@ phases:
     runtime-versions:
       python: 3.12
     commands:
-      - pip install -r client/requirements-aws.txt
+      - pip install -r apps/web/requirements-aws.txt
   build:
     commands:
       - python infrastructure/release/migrate.py

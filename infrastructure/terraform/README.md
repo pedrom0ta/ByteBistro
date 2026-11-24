@@ -1,6 +1,6 @@
 # Infraestrutura AWS do ByteBistro
 
-Esta configuração implementa a topologia do [diagrama AWS](../../docs/architecture/aws-architecture.md) como código. A demonstração usa Django e SQLite. A imagem web usa PostgreSQL com TLS verificado no ambiente AWS. O Django mantém o checkout e as migrações. Apollo/Prisma consulta o status e o worker processa os eventos de outbox via SQS e SNS.
+Esta configuração descreve a topologia do [diagrama AWS](../../docs/architecture/aws-architecture.md) como código. A demonstração pública usa uma EC2 independente com Django. A imagem web do ambiente distribuído usa PostgreSQL com TLS verificado. O Django mantém o checkout e as migrações. Apollo/Prisma consulta o status e o worker processa os eventos de outbox via SQS e SNS. [Estado da implantação](../../docs/deployment/status.md)
 
 | Camada | Recursos definidos |
 | --- | --- |
@@ -45,17 +45,40 @@ O ambiente novo inicia com os dados das migrações Django. A validação por SM
 Na raiz do repositório, construa a imagem web com:
 
 ```powershell
-docker build --platform linux/amd64 -t bytebistro-web:local ./client
+docker build --platform linux/amd64 -t bytebistro-web:local ./apps/web
 ```
 
 O segredo `web` deve fornecer `DJANGO_SECRET_KEY`, `PGHOST`, `PGDATABASE`, `PGUSER` e `PGPASSWORD`. Use o endpoint DNS do RDS como `PGHOST` para permitir a verificação de TLS. O contêiner usa o conjunto de certificados da AWS e a porta PostgreSQL 5432 por padrão. O usuário do Django deve ter acesso apenas às tabelas sob responsabilidade desse serviço.
 
-Execute as migrações em uma etapa controlada, usando acesso privado ao banco. Publique o conteúdo de `client/static/` sob o prefixo `static/` no bucket `assets_bucket`, preservando os caminhos dos arquivos.
+Execute as migrações em uma etapa controlada, usando acesso privado ao banco. Publique o conteúdo de `apps/web/static/` sob o prefixo `static/` no bucket `assets_bucket`, preservando os caminhos dos arquivos.
 
 ## Publicação e migração
 
-O empacotador `infrastructure/release/archive.py` seleciona os fontes dos contêineres e os scripts do CodeBuild. Envie o ZIP a `release-source/` no bucket de assets. Inicie o projeto `bytebistro-build` com esse objeto S3 como origem e uma tag de release única. O build publica as imagens no ECR, envia os estáticos ao S3 e grava o mapa de digests em `releases/<tag>.json`.
+Na raiz do repositório, gere o ZIP e derive a tag do seu conteúdo com Python 3.11 ou superior.
+
+```powershell
+$releaseTag = python infrastructure/release/archive.py release.zip --print-tag
+```
+
+Envie esse ZIP a `release-source/<tag>.zip` no bucket de assets. Inicie o projeto `bytebistro-build` com esse objeto S3 como origem e a variável `RELEASE_TAG` preenchida com `$releaseTag`. Ao repetir o build do mesmo ZIP, o pipeline reutiliza as imagens que já existem no ECR para a tag. As imagens são construídas para `linux/amd64`. Após resolver os três digests, o build envia os estáticos ao S3 e grava o mapa em `releases/<tag>.json`.
 
 O projeto `bytebistro-migrate` usa o mesmo pacote, roda em uma sub-rede privada e cria os usuários PostgreSQL, os valores dos segredos de runtime, as tabelas Django e a tabela do cache compartilhado. Execute-o antes de ativar as frotas. Se o CodeBuild estiver sem cota, construa as imagens localmente e execute a migração a partir de um executor temporário com acesso privado ao RDS e permissões equivalentes às do projeto de migração.
 
 Valores de segredos são gerados no ambiente de migração. Mantenha no Terraform apenas os ARNs. Em caso de falhas no provisionamento, consulte o estado gerenciado e execute um novo plano após corrigir a restrição da conta.
+
+### Publicação local quando o CodeBuild tem cota zero
+
+Use o Docker com BuildKit e a tag do ZIP já enviado a `release-source/`. Na raiz do repositório, preencha `$registry` com o host do ECR obtido em `terraform output -json ecr_repositories`. Os comandos abaixo são para PowerShell e usam os nomes padrão dos repositórios.
+
+```powershell
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $registry
+docker buildx build --platform linux/amd64 --push -t "${registry}/bytebistro/web:${releaseTag}" ./apps/web
+docker buildx build --platform linux/amd64 --push --target api -t "${registry}/bytebistro/api:${releaseTag}" ./apps/services
+docker buildx build --platform linux/amd64 --push --target worker -t "${registry}/bytebistro/worker:${releaseTag}" ./apps/services
+```
+
+Em caso de timeout, consulte `aws ecr describe-images` antes de repetir. O ECR usa tags imutáveis, então repita apenas o comando da imagem que ainda estiver ausente. Depois, sincronize `apps/web/static/` com `s3://<bucket-de-assets>/static/` e grave `releases/<tag>.json` com as chaves `web`, `api` e `worker` e os digests retornados pelo ECR. Use esses digests no `runtime` do Terraform.
+
+### Liberação da entrada pública
+
+Se o CloudFront retornar HTTP 403 com `Your account must be verified before you can add new CloudFront resources`, encaminhe a mensagem e o Request ID ao AWS Support em **Account and billing**. Os artefatos podem ser publicados enquanto a conta aguarda verificação. Depois da liberação, gere um novo plano com o `runtime` do release e confira a disponibilidade da distribuição e a saúde dos alvos antes de divulgar a URL. [Abertura de chamados no AWS Support](https://docs.aws.amazon.com/awssupport/latest/user/case-management.html)

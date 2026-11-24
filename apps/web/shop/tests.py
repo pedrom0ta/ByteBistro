@@ -1,4 +1,6 @@
+import json
 import time
+from io import BytesIO
 from unittest.mock import patch
 from django.core.cache import cache
 from django.core.management import call_command
@@ -90,6 +92,48 @@ class Flows(TestCase):
         self.assertEqual(status.json(), payload)
         self.assertEqual(status.headers["Cache-Control"], "no-store")
         lookup.assert_called_once_with(Order.objects.get().pk, self.client.session["owner"], None)
+
+    @override_settings(BYTEBISTRO_GRAPHQL_URL="http://api:4000/graphql", GRAPHQL_SERVICE_TOKEN="test-token")
+    def test_graphql_tracking_distinguishes_missing_orders_from_upstream_failures(self):
+        self.add()
+        self.client.post("/restaurante/", {"table": "4", "token": self.client.session["token"]})
+        url = reverse("status", args=[Order.objects.get().pk])
+        payload = {"stage": 0, "status": "Pedido recebido", "finished": False, "reason": ""}
+
+        with patch("shop.graphql.urlopen", return_value=BytesIO(json.dumps({"data": {"orderStatus": payload}}).encode())):
+            response = self.client.get(url)
+        self.assertEqual(response.json(), payload)
+
+        with patch("shop.graphql.urlopen", return_value=BytesIO(b'{"data":{"orderStatus":null}}')):
+            missing = Client().get(url)
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(missing.headers["Cache-Control"], "no-store")
+
+        for response_body in (
+            b'{broken JSON',
+            b'{"errors":[{"message":"Upstream failure"}],"data":{"orderStatus":null}}',
+            json.dumps({"data": {"orderStatus": {**payload, "stage": True}}}).encode(),
+        ):
+            with self.subTest(response_body=response_body):
+                with patch("shop.graphql.urlopen", return_value=BytesIO(response_body)):
+                    failure = self.client.get(url)
+                self.assertEqual(failure.status_code, 503)
+                self.assertEqual(failure.headers["Cache-Control"], "no-store")
+                self.assertEqual(failure.json(), {"error": "Acompanhamento temporariamente indisponível."})
+
+        with patch("shop.graphql.urlopen", side_effect=TimeoutError):
+            self.assertEqual(self.client.get(url).status_code, 503)
+
+    def test_local_tracking_status_is_private_to_the_order_owner(self):
+        self.add()
+        self.client.post("/restaurante/", {"table": "4", "token": self.client.session["token"]})
+        url = reverse("status", args=[Order.objects.get().pk])
+
+        self.assertEqual(self.client.get(url).headers["Cache-Control"], "no-store")
+        missing = Client().get(url)
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(missing.headers["Cache-Control"], "no-store")
+        self.assertEqual(missing.json(), {"error": "Pedido não encontrado."})
 
     def test_new_delivery(self):
         self.add()

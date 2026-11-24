@@ -24,5 +24,10 @@ cd /opt/bytebistro-migrate
 aws s3 cp 's3://${bucket}/release-source/${release}.zip' /tmp/source.zip --only-show-errors
 unzip -q /tmp/source.zip
 python3.12 -m venv .venv
-.venv/bin/pip install -q -r client/requirements-aws.txt
+requirements=apps/web/requirements-aws.txt
+if [[ ! -f "$requirements" ]]; then
+    # Earlier release archives place the Django app under client/.
+    requirements=client/requirements-aws.txt
+fi
+.venv/bin/pip install -q -r "$requirements"
 .venv/bin/python infrastructure/release/migrate.py
