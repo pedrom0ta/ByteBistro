@@ -29,11 +29,11 @@ Entre em [Painel ByteBistro](http://127.0.0.1:8000/painel/). Use a porta do serv
 
 Em outra janela, faça um pedido pelo site público. A central consulta novos pedidos a cada quatro segundos. Aceite-o ou recuse-o com um motivo. Pedidos aceitos entram na cozinha. Marque como pronto e conclua na mesa, ou registre a saída e a entrega no delivery. O cliente vê o andamento pelo próprio acompanhamento. Para contabilizar o valor recebido, registre o recebimento confirmado nos detalhes do pedido concluído.
 
-As migrações importam os seis produtos e mesas iniciais. O painel usa os mesmos registros SQLite do site. A imagem de produto aceita arquivo já presente em `static/images/` ou URL HTTPS. O cadastro de mesas inclui uma chave estável reservada para o futuro QR Code. Horários e previsão de preparo são informações cadastradas. Para abrir ou fechar pedidos, use o controle explícito em **Configurações**.
+As migrações importam os seis produtos e mesas iniciais. O painel usa os mesmos registros SQLite do site. A imagem de produto aceita arquivo já presente em `static/images/` ou URL HTTPS. A equipe cadastra horários e previsão de preparo e usa **Configurações** para abrir ou fechar pedidos.
 
 Os módulos ficam em `shop/staff_views.py`, `shop/staff_forms.py`, `shop/operations.py` e `shop/storefront.py`. A interface usa `templates/staff/`, `static/css/operations.css` e `static/js/operations.js`. O histórico de etapas e as movimentações de estoque registram responsável e horário. Atualizações antigas anteriores ao painel preservam a etapa existente. As migrações registram a data de recebimento desses pedidos, pois o banco anterior guardava apenas a etapa atual.
 
-O painel grava permissões, transições e mudanças de catálogo no Django. A tela do cliente consulta o status periodicamente. O estoque é movimentado manualmente. Integração com receitas, pagamento eletrônico e estorno são evoluções.
+O painel grava permissões, transições e mudanças de catálogo no Django. A tela do cliente consulta o status periodicamente. A equipe registra movimentações de estoque e confirma recebimentos no painel.
 
 ### Site do cliente
 
@@ -89,10 +89,10 @@ A marca ByteBistro foi recortada do cabeçalho da referência fornecida. As foto
 - [Batatas](https://images.unsplash.com/photo-1573080496219-bb080dd4f877)
 - [Brownie](https://images.unsplash.com/photo-1606313564200-e75d5e30476c)
 
-## Integração e evolução
+## Integração com a API de status
 
-Com `BYTEBISTRO_GRAPHQL_URL` configurada, o Django consulta o status na API GraphQL em [`apps/services/`](../services/README.md). O adaptador usa `GRAPHQL_SERVICE_TOKEN`, identidade da sessão e timeout. O checkout e as operações do painel gravam pelo ORM Django. No modo distribuído, o checkout também pode gravar a outbox na mesma transação.
+Com `BYTEBISTRO_GRAPHQL_URL` configurada, o Django consulta o status na API GraphQL em [`apps/services/`](../services/README.md). O adaptador usa `GRAPHQL_SERVICE_TOKEN`, identidade da sessão e timeout. O checkout e as operações do painel gravam pelo ORM Django. Com `BYTEBISTRO_OUTBOX_ENABLED=1`, o checkout grava a outbox na mesma transação.
 
-O modo local de verificação exibe o código no console. Para delivery público, `SMS_PROVIDER` precisa apontar para um provedor que implemente `issue(phone) -> challenge` e `verify(challenge, code) -> bool`. A configuração distribuída usa cache compartilhado no PostgreSQL.
+O provedor de demonstração exibe o código de verificação no console. A aplicação permite selecionar um provedor em `SMS_PROVIDER`, com o contrato `issue(phone) -> challenge` e `verify(challenge, code) -> bool`. Na configuração distribuída, os desafios e limites de verificação usam cache compartilhado no PostgreSQL.
 
-O banco `demo.sqlite3` e a chave `.local.key` são dados locais da demonstração. Use dados fictícios. O [contrato proposto](../../docs/architecture/system-architecture.md#contrato-proposto) descreve a opção de transferir as escritas de negócio para o Node.js. [Estado da implantação](../../docs/deployment/status.md)
+O banco `demo.sqlite3` e a chave `.local.key` são dados locais da demonstração. Use dados fictícios. [Estado da implantação](../../docs/deployment/status.md)

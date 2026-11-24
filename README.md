@@ -86,12 +86,12 @@ flowchart TB
     USER -. DNS com domínio próprio .-> R53
 ```
 
-## O que está disponível
+## Entrega acadêmica
 
 - **Cliente.** Cardápio com busca e categorias, personalização de itens, carrinho, pedidos na mesa ou por delivery e acompanhamento.
 - **Equipe do restaurante.** Painel com acesso por perfil, fila de pedidos, cozinha, mesas, catálogo, estoque e registro de recebimentos.
-- **Demonstração.** Django e SQLite funcionam localmente. A [vitrine pública](https://54.209.48.237/) na EC2 serve uma versão anterior. Para avaliar o código desta revisão e testar delivery com o código no terminal, use a execução local.
-- **Integração distribuída.** O código inclui Apollo/GraphQL para consulta de status, Prisma, PostgreSQL e um worker para SQS/SNS. As imagens foram publicadas no ECR. A ativação pública pelo CloudFront aguarda verificação da conta AWS. [Estado da implantação](docs/deployment/status.md)
+- **Demonstração.** A versão local roda com Django e SQLite e permite testar o delivery com o código de verificação no terminal. A vitrine também pode ser acessada na EC2. [Demonstração pública](https://54.209.48.237/)
+- **Integração distribuída.** O projeto implementa consulta de status via Apollo/GraphQL e Prisma com PostgreSQL e um worker para SQS/SNS. As três imagens do release foram publicadas no ECR. [Estado da implantação](docs/deployment/status.md)
 
 ## Executar localmente
 
@@ -121,6 +121,6 @@ Para uma avaliação rápida, envie um pedido na mesa, aceite-o no painel, marqu
 ## Documentação
 
 - [Arquitetura, decisões e diagramas](docs/architecture/README.md)
-- [Docker](docs/deployment/docker-guide.md) e [implantação na AWS](infrastructure/terraform/README.md)
+- [Docker](docs/deployment/docker-guide.md), [implantação na AWS](infrastructure/terraform/README.md) e [estado da implantação](docs/deployment/status.md)
 - [Requisitos funcionais](docs/requisitos/requisitos-funcionais.md) e [não funcionais](docs/requisitos/requisitos-nao-funcionais.md)
 - [Roteiro de apresentação](docs/apresentacao/README.md) e [resumo da entrega acadêmica](docs/apresentacao/material-academico.md)

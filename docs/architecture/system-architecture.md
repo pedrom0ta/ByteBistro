@@ -53,6 +53,6 @@ flowchart LR
 
 O navegador continua usando a interface Django. O Django chama a API interna com identidade autenticada, timeouts e tratamento do campo GraphQL `errors`. Node.js mantém o monólito modular do domínio e assume validação de preços, autorização, pedidos, transições e eventos. Prisma passa a gerir o esquema do domínio. Se Django mantiver sessões e autenticação próprias, usará persistência compartilhada com tabelas, migrações e usuário separados dos do domínio.
 
-A transição precisa preservar permissões, cálculo em centavos, idempotência do checkout e visibilidade dos pedidos no painel, com um único responsável por cada escrita durante o corte. A configuração distribuída já usa cache PostgreSQL para verificação de telefone. [Integração e evolução](../../apps/web/README.md#integração-e-evolução) · [Decisões](architecture-decisions.md)
+A transição precisa preservar permissões, cálculo em centavos, idempotência do checkout e visibilidade dos pedidos no painel, com um único responsável por cada escrita durante o corte. A configuração distribuída já usa cache PostgreSQL para verificação de telefone. [Integração com a API de status](../../apps/web/README.md#integração-com-a-api-de-status) · [Decisões](architecture-decisions.md)
 
 [Django](https://docs.djangoproject.com/en/5.0/) · [Node.js](https://nodejs.org/docs/latest/api/) · [TypeScript](https://www.typescriptlang.org/docs/) · [Apollo Server](https://www.apollographql.com/docs/apollo-server/) · [Prisma](https://www.prisma.io/docs) · [PostgreSQL](https://www.postgresql.org/docs/)

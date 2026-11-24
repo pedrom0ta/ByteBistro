@@ -38,7 +38,7 @@ No modo padrão, o endereço público é `https://<distribuição>.cloudfront.ne
 
 Os segredos de runtime devem estar na mesma conta e região, em JSON plano com valores string de uma linha. Use a chave padrão do Secrets Manager ou conceda `kms:Decrypt` específico se adotar chave própria. Django e Apollo compartilham o perfil IAM do host. A frota worker tem perfil separado. O uso de SSM para diagnóstico depende do agente na AMI e da saída HTTPS da VPC.
 
-O ambiente novo inicia com os dados das migrações Django. A validação por SMS continua dependente de um provedor real para o delivery. Use mudanças de esquema compatíveis durante o rollout. Para reverter um release compatível, volte os digests e revise o plano de atualização das instâncias.
+As migrações Django incluem os dados iniciais do ambiente. Configure `SMS_PROVIDER` com o provedor de delivery do ambiente. Use mudanças de esquema compatíveis durante o rollout. Para reverter um release compatível, volte os digests e revise o plano de atualização das instâncias.
 
 ## Imagem Django
 
@@ -81,4 +81,4 @@ Em caso de timeout, consulte `aws ecr describe-images` antes de repetir. O ECR u
 
 ### Liberação da entrada pública
 
-Se o CloudFront retornar HTTP 403 com `Your account must be verified before you can add new CloudFront resources`, encaminhe a mensagem e o Request ID ao AWS Support em **Account and billing**. Os artefatos podem ser publicados enquanto a conta aguarda verificação. Depois da liberação, gere um novo plano com o `runtime` do release e confira a disponibilidade da distribuição e a saúde dos alvos antes de divulgar a URL. [Abertura de chamados no AWS Support](https://docs.aws.amazon.com/awssupport/latest/user/case-management.html)
+Para um HTTP 403 do CloudFront com `Your account must be verified before you can add new CloudFront resources`, encaminhe a mensagem e o Request ID ao AWS Support em **Account and billing**. Gere o plano de ativação com o `runtime` do release e confira a disponibilidade da distribuição e a saúde dos alvos antes de divulgar a URL. [Abertura de chamados no AWS Support](https://docs.aws.amazon.com/awssupport/latest/user/case-management.html)

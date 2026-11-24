@@ -2,7 +2,7 @@
 
 Apresentação da disciplina de Sistemas Distribuídos. Para demonstrar a revisão do repositório, execute o Django localmente e crie a conta do painel antes da apresentação. [Guia local](../../apps/web/README.md)
 
-## 1. Problema e proposta — 1 minuto
+## 1. Problema e solução — 1 minuto
 
 Apresente o problema de receber e acompanhar pedidos em restaurantes. Mostre como o ByteBistro conecta o cardápio digital ao painel da equipe.
 
@@ -23,4 +23,4 @@ Mostre o que o Django executa no MVP e o ponto em que a integração usa Apollo/
 
 ## 4. Validação e encerramento — 2 minutos
 
-Apresente as verificações de reenvio de checkout, permissões do painel, acompanhamento privado e concorrência. Mostre o que foi testado em integração local com Apollo e PostgreSQL e deixe explícito que a mensageria na AWS ainda está por homologar. [Verificações do projeto](../deployment/ci-cd.md)
+Apresente as verificações de reenvio de checkout, permissões do painel, acompanhamento privado e concorrência. Mostre os resultados da integração local com Apollo e PostgreSQL. [Verificações do projeto](../deployment/ci-cd.md) · [Estado da implantação](../deployment/status.md)
