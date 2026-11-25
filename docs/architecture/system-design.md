@@ -6,7 +6,7 @@ O ByteBistro é um sistema de cardápio digital e gerenciamento de pedidos desen
 
 Na versão atual, o Django executa a interface web, o painel e as regras de negócio, com persistência em SQLite pelo ORM Django. O checkout já registra pedidos e permite acompanhar seu andamento e gerenciá-los no painel. [Arquitetura atual](system-architecture.md)
 
-A configuração distribuída implementa a consulta de status via GraphQL e o processamento assíncrono de pedidos. O Terraform define a infraestrutura AWS, cuja entrada pública e frotas ainda aguardam ativação.
+A configuração distribuída implementa a consulta de status via GraphQL e o processamento assíncrono de pedidos, com infraestrutura definida em Terraform. [Diagrama AWS](aws-architecture.md)
 
 ### Objetivos do sistema
 
@@ -146,7 +146,7 @@ Django (`web`), API Node.js + Apollo (`api`) e workers (`worker`) executam em fr
 
 **GitHub Actions** — workflow de testes, compilação e verificação do ZIP de release.
 
-**CodeBuild** — pipeline definido para publicar imagens e executar a migração em um job separado. O último release foi publicado com Docker local por causa da cota da conta. [CI/CD](../deployment/ci-cd.md)
+**CodeBuild** — pipeline definido para publicar imagens e executar a migração em um job separado. [CI/CD](../deployment/ci-cd.md)
 
 ## 7. Escalabilidade e disponibilidade
 

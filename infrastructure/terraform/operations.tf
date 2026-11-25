@@ -143,7 +143,6 @@ resource "aws_cloudwatch_metric_alarm" "queue_age" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "web" {
-  count       = var.runtime == null ? 0 : 1
   alarm_name  = "${var.name}-web-unhealthy"
   namespace   = "AWS/ApplicationELB"
   metric_name = "HealthyHostCount"
@@ -161,7 +160,6 @@ resource "aws_cloudwatch_metric_alarm" "web" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "api" {
-  count       = var.runtime == null ? 0 : 1
   alarm_name  = "${var.name}-api-unhealthy"
   namespace   = "AWS/ApplicationELB"
   metric_name = "HealthyHostCount"

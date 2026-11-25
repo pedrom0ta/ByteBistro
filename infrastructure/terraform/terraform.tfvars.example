@@ -7,15 +7,16 @@ hosted_zone_id = "Z1234567890ABC"
 # Enforce blocking mode on AWSManagedRulesCommonRuleSet (set false for count-only mode).
 waf_enforce = true
 
-# Optional email subscriptions (AWS sends a confirmation email to each address).
-# notification_email = "orders@example.com"
-# ops_email          = "ops@example.com"
+# Mandatory email subscriptions (AWS sends a confirmation email to each address).
+notification_email = "orders@example.com"
+ops_email          = "ops@example.com"
 
-# runtime = null provisions the base infrastructure without application ASGs (web, api, worker).
-# After publishing images and running database migrations, activate all 3 fleets (6 EC2 minimum).
+# Mandatory image digests for full topology activation (all 3 fleets: web, api, worker; 6 EC2 minimum).
+# Publish the Docker images to the ECR repositories beforehand via the build pipeline
+# (or bootstrap the ECR repositories first with `terraform apply -target=aws_ecr_repository.main`).
 # AMI (Amazon Linux 2023) and Secrets Manager ARNs are resolved automatically by Terraform.
-# runtime = {
-#   web_digest    = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-#   api_digest    = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-#   worker_digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-# }
+runtime = {
+  web_digest    = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  api_digest    = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  worker_digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+}

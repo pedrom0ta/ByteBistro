@@ -34,7 +34,7 @@ resource "aws_iam_role_policy_attachment" "ssm" {
 
 locals {
   fleet_services = { web = ["web"], api = ["api"], worker = ["worker"] }
-  images = var.runtime == null ? {} : {
+  images = {
     web    = var.runtime.web_digest
     api    = var.runtime.api_digest
     worker = var.runtime.worker_digest
@@ -42,7 +42,7 @@ locals {
 }
 
 resource "aws_iam_role_policy" "runtime" {
-  for_each = var.runtime == null ? toset([]) : local.fleets
+  for_each = local.fleets
   role     = aws_iam_role.instance[each.key].name
   policy = jsonencode({
     Version = "2012-10-17"
@@ -107,14 +107,13 @@ resource "aws_iam_instance_profile" "main" {
 }
 
 data "aws_ssm_parameter" "fleet_ami" {
-  count = var.runtime == null ? 0 : 1
-  name  = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 }
 
 resource "aws_launch_template" "main" {
-  for_each               = var.runtime == null ? toset([]) : local.fleets
+  for_each               = local.fleets
   name_prefix            = "${var.name}-${each.key}-"
-  image_id               = data.aws_ssm_parameter.fleet_ami[0].value
+  image_id               = data.aws_ssm_parameter.fleet_ami.value
   instance_type          = var.instance_type
   update_default_version = true
   monitoring {
@@ -201,7 +200,6 @@ resource "aws_autoscaling_policy" "cpu" {
 }
 
 resource "aws_autoscaling_policy" "job_backlog" {
-  count                  = var.runtime == null ? 0 : 1
   name                   = "${var.name}-worker-backlog"
   policy_type            = "TargetTrackingScaling"
   autoscaling_group_name = aws_autoscaling_group.main["worker"].name

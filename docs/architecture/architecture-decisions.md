@@ -66,7 +66,7 @@
 
 | Campo | Registro |
 | --- | --- |
-| Status | Implementada no código e no Terraform. Homologação em SQS/SNS pendente. |
+| Status | Implementada no código e no Terraform |
 | Contexto | Pedido confirmado deve sobreviver a indisponibilidade de integrações. |
 | Problema | Publicar eventos após commit e distribuir notificações fora do checkout. |
 | Decisão | O Django grava a outbox na transação do pedido. O worker publica e consome no SQS, enriquece o evento `order.created`, publica no SNS (com assinatura opcional via `notification_email`) e registra `"notified"` em `shop_orderevent` na mesma transação que marca `notifiedAt`. O SQS envia falhas repetidas para uma DLQ. |
@@ -90,7 +90,7 @@
 
 | Campo | Registro |
 | --- | --- |
-| Status | Implementada em `apps/web` e no Terraform; entrega real pendente de ativação das frotas |
+| Status | Implementada em `apps/web` e no Terraform |
 | Contexto | O checkout de delivery exige verificação OTP por telefone, e `ConsoleProvider` falha com `DEBUG = False`. |
 | Problema | Viabilizar envio real de SMS transacional em produção sem quebrar o fluxo local de demonstração. |
 | Decisão | Manter `ConsoleProvider` em `config/settings.py` para desenvolvimento local e configurar `SnsSmsProvider` (`boto3` com AWS SNS `Transactional`, normalização E.164 com `SMS_COUNTRY_CODE = "+55"`) como padrão em `config/aws_settings.py`, com permissão `sns:Publish` na role IAM da frota `web`. |
@@ -100,4 +100,4 @@
 
 ## Decisões em aberto
 
-Validar capacidade e objetivos de recuperação, política de retenção/notificação e exigência de ordem por pedido. Homologar a mensageria SQS/SNS e o envio real de SMS/e-mail em ambiente AWS ativo, além de verificar a restauração de backup. [Estado da implantação](../deployment/status.md)
+Validar capacidade e objetivos de recuperação, política de retenção/notificação e exigência de ordem por pedido. Homologar a mensageria SQS/SNS e o envio real de SMS/e-mail em ambiente ativo, além de verificar a restauração de backup.

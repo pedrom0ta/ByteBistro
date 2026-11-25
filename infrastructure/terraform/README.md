@@ -1,13 +1,13 @@
 # Infraestrutura AWS do ByteBistro
 
-Esta configuração descreve a topologia do [diagrama AWS](../../docs/architecture/aws-architecture.md) como código. A demonstração pública usa uma EC2 independente com Django. A imagem web do ambiente distribuído usa PostgreSQL com TLS verificado, chama a API Apollo/Prisma (`api`) por meio de um ALB interno (`aws_lb.api`) e envia SMS transacional OTP via AWS SNS (`SnsSmsProvider`). O Django mantém o checkout e as migrações, enquanto `worker` processa os eventos de outbox via SQS e SNS e registra notificações no histórico do pedido. [Estado da implantação](../../docs/deployment/status.md)
+Esta configuração descreve a topologia do [diagrama AWS](../../docs/architecture/aws-architecture.md) como código. A imagem web do ambiente distribuído usa PostgreSQL com TLS verificado, chama a API Apollo/Prisma (`api`) por meio de um ALB interno (`aws_lb.api`) e envia SMS transacional OTP via AWS SNS (`SnsSmsProvider`). O Django mantém o checkout e as migrações, enquanto `worker` processa os eventos de outbox via SQS e SNS e registra notificações no histórico do pedido.
 
 | Camada | Recursos definidos |
 | --- | --- |
 | Entrada | Route 53 (`domain` e `hosted_zone_id` obrigatórios), ACM (`edge` em `us-east-1` e `origin` na região), CloudFront (`https-only`), AWS WAFv2 (`AWSManagedRulesCommonRuleSet` com bloqueio ativo por padrão via `waf_enforce = true` e rate-limit de 2000 req/IP) e ALB público (HTTPS na porta `443`). |
 | Rede | VPC com duas AZs, Internet Gateway, NAT por AZ, sub-redes públicas, privadas e isoladas de dados, ALB interno (`aws_lb.api`, `internal = true`, sub-redes privadas, HTTP na porta `4000`) entre `web` e `api`, endpoint gateway S3 e seis grupos de segurança da aplicação (`alb`, `internal_alb`, `web`, `api`, `worker`, `db`, além do SG de migração). |
-| Computação | Três repositórios ECR (`web`, `api`, `worker`) e, com `runtime` preenchido (apenas os três digests), AMI Amazon Linux 2023 resolvida via SSM Parameter Store (`data.aws_ssm_parameter.fleet_ami`), três IAM Roles/Instance Profiles independentes, três Launch Templates e **três ASGs desacoplados (`web`, `api` e `worker`)** em sub-redes privadas (mínimo de 2 instâncias cada = 6 EC2). |
-| Dados e mensageria | RDS PostgreSQL 16 Multi-AZ, S3 privado, SQS Standard com DLQ, tópico SNS `notifications` criptografado com KMS (com assinatura de e-mail opcional via `notification_email` / `aws_sns_topic_subscription.notifications`), tópico de alarmes separado (`ops_email`) e envio direto de SMS OTP via AWS SNS pela frota `web`. |
+| Computação | Três repositórios ECR (`web`, `api`, `worker`), AMI Amazon Linux 2023 resolvida via SSM Parameter Store (`data.aws_ssm_parameter.fleet_ami`), três IAM Roles/Instance Profiles independentes, três Launch Templates e **três ASGs desacoplados (`web`, `api` e `worker`)** em sub-redes privadas (mínimo de 2 instâncias cada = 6 EC2), provisionados incondicionalmente a partir dos três digests obrigatórios em `var.runtime`. |
+| Dados e mensageria | RDS PostgreSQL 16 Multi-AZ, S3 privado (`assets` e `audit`), SQS Standard com DLQ, tópico SNS `notifications` criptografado com KMS (com assinatura de e-mail obrigatória via `notification_email` / `aws_sns_topic_subscription.notifications`), tópico de alarmes separado (`ops_email` obrigatório / `aws_sns_topic_subscription.ops`) e envio direto de SMS OTP via AWS SNS pela frota `web`. |
 | Segurança e operação | IAM por frota, segredos pré-provisionados em `${var.name}/runtime/{web,api,worker}`, logs e alarmes CloudWatch (incluindo `HealthyHostCount` para `web` em `${var.name}-web-unhealthy` e `api` em `${var.name}-api-unhealthy`), auditoria CloudTrail e backup diário de RDS via AWS Backup. |
 | Publicação | CodeBuild constrói as três imagens, publica estáticos no S3 e executa migrações em uma tarefa separada na VPC (com alternativa em EC2 temporária via `migration_release` em `migration-host.tf`). |
 
@@ -15,18 +15,18 @@ O Route 53 aponta `var.domain` (`A`/`AAAA`) para o CloudFront e `origin.<var.dom
 
 ## Preparação
 
-- Escolher região e nome do ambiente. Os parâmetros `domain` (hostname DNS minúsculo de até 56 caracteres) e `hosted_zone_id` (`^Z[A-Z0-9]+$`) são **obrigatórios** (`nullable = false`) e devem usar uma zona pública existente e delegada no Route 53; o Terraform cria os registros de `var.domain`, `origin.<var.domain>` e validação dos certificados ACM. Opcionalmente, defina `waf_enforce` (padrão `true`), `notification_email` (padrão `null`) e `ops_email` (padrão `null`).
+- Escolher região e nome do ambiente. Os parâmetros `domain` (hostname DNS minúsculo de até 56 caracteres), `hosted_zone_id` (`^Z[A-Z0-9]+$`), `notification_email`, `ops_email` e `runtime` (`{ web_digest, api_digest, worker_digest }` com digests `sha256` completos) são **obrigatórios** (`nullable = false`). A zona pública no Route 53 deve existir e estar delegada; o Terraform cria os registros de `var.domain`, `origin.<var.domain>` e validação dos certificados ACM. Opcionalmente, ajuste `waf_enforce` (padrão `true`).
 - Configurar estado remoto criptografado e versionado antes de usar a configuração em equipe. O bucket de estado deve existir previamente. Usar chave de estado por ambiente e bloqueio nativo do backend S3. O estado contém o valor do cabeçalho da origem e deve ter acesso restrito. [Backend S3 do Terraform](https://developer.hashicorp.com/terraform/language/backend/s3)
 - Usar credenciais temporárias e permissões de implantação. Conferir cotas, incluindo os grupos de segurança que consomem a lista de prefixos gerenciada do CloudFront.
-- Revisar o orçamento antes de aplicar. Dois NAT Gateways, dois ALBs (público `web` e interno `api`), CloudFront/WAF/Route 53/ACM sempre ativos, armazenamento e RDS Multi-AZ podem gerar cobrança já na fase inicial. A ativação das frotas com `var.runtime` acrescenta **seis EC2 no mínimo** (3 ASGs × `min_size = 2`). [AWS Pricing Calculator](https://calculator.aws/)
+- Revisar o orçamento antes de aplicar. O plano completo provisiona dois NAT Gateways, dois ALBs (público `web` e interno `api`), CloudFront/WAF/Route 53/ACM, RDS Multi-AZ, armazenamento e **seis EC2 no mínimo** (3 ASGs × `min_size = 2`). [AWS Pricing Calculator](https://calculator.aws/)
 
 ## Revisão e ativação
 
-1. Copiar `terraform.tfvars.example` para `terraform.tfvars` e configurar `region`, `domain`, `hosted_zone_id` e eventuais variáveis opcionais. Inicializar com `terraform init -backend-config=backend.hcl` (use `backend.hcl.example` como modelo), validar com `terraform validate` e revisar `terraform plan -out=base.tfplan`. Revisar o backend antes de implantar.
-2. Após aprovar e aplicar a base, publicar imagens Linux x86_64 nos três repositórios ECR (`web`, `api`, `worker`). Publicar assets sob `static/` no bucket indicado em `assets_bucket`. Com `runtime = null`, os Target Groups `web` e `api` permanecem sem alvos e seus alarmes de saúde ficam desativados.
-3. Executar a migração para provisionar os três usuários PostgreSQL de aplicação (`bytebistro_web`, `bytebistro_api` e `bytebistro_worker`) com acesso privado, TLS e privilégio mínimo, além de popular os três segredos `${var.name}/runtime/{web,api,worker}` (`runtime_secret_arns`). Usar o segredo de administrador gerado pelo RDS apenas para essa inicialização controlada.
-4. Terraform resolve automaticamente a AMI Amazon Linux 2023 via SSM Parameter Store (`data.aws_ssm_parameter.fleet_ami` em `/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64`), referencia os segredos diretamente por `aws_secretsmanager_secret.runtime[service].arn` e instala o Docker via `bootstrap.sh.tftpl` (ative a criptografia EBS padrão da conta se desejar volume raiz criptografado por padrão). Preencher `var.runtime` apenas com `{ web_digest, api_digest, worker_digest }` (`sha256:...`), gerar outro plano e revisar antes de aplicar.
-5. Consultar `terraform output -raw application_url` para o endereço público e `terraform output -raw api_alb_dns` para o DNS do ALB interno. Conferir alvos saudáveis em ambas as AZs nos dois Target Groups (`web` em `/healthz/` e `api` em `/healthz`), os alarmes `${var.name}-web-unhealthy` e `${var.name}-api-unhealthy`, autenticação e cookies via CloudFront, entrega de estáticos, checkout, envio de SMS OTP via AWS SNS, atualização no painel, processamento da fila, DLQ e restauração de backup. Confirmar as assinaturas de e-mail `ops_email` (tópico `alarms`) e `notification_email` (tópico `notifications`), quando configuradas.
+1. Copiar `terraform.tfvars.example` para `terraform.tfvars` e configurar `region`, `domain`, `hosted_zone_id`, `notification_email`, `ops_email` e `runtime`. Inicializar com `terraform init -backend-config=backend.hcl` (use `backend.hcl.example` como modelo) e validar com `terraform validate`. Revisar o backend antes de implantar.
+2. **Bootstrap inicial de imagens**: como `var.runtime` é obrigatório na ativação completa, as três imagens Linux x86_64 (`web`, `api`, `worker`) devem estar publicadas nos repositórios ECR antes do `terraform apply` completo (via pipeline de build prévio ou aplicando inicialmente apenas os repositórios ECR com `terraform apply -target=aws_ecr_repository.main` e publicando as imagens para obter os digests `sha256`).
+3. Executar o `terraform plan -out=full.tfplan` e revisar todos os recursos antes de aplicar. O Terraform resolve automaticamente a AMI Amazon Linux 2023 via SSM Parameter Store (`data.aws_ssm_parameter.fleet_ami` em `/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64`), referencia os segredos diretamente por `aws_secretsmanager_secret.runtime[service].arn` e instala o Docker via `bootstrap.sh.tftpl` (ative a criptografia EBS padrão da conta se desejar volume raiz criptografado por padrão).
+4. Publicar assets sob `static/` no bucket indicado em `assets_bucket` e executar a migração (`bytebistro-migrate` ou `migration_release`) para provisionar os três usuários PostgreSQL de aplicação (`bytebistro_web`, `bytebistro_api` e `bytebistro_worker`) com acesso privado, TLS e privilégio mínimo, além de popular os três segredos `${var.name}/runtime/{web,api,worker}` (`runtime_secret_arns`). Usar o segredo de administrador gerado pelo RDS apenas para essa inicialização controlada.
+5. Consultar `terraform output -raw application_url` para o endereço público e `terraform output -raw api_alb_dns` para o DNS do ALB interno. Conferir alvos saudáveis em ambas as AZs nos dois Target Groups (`web` em `/healthz/` e `api` em `/healthz`), os alarmes `${var.name}-web-unhealthy` e `${var.name}-api-unhealthy`, autenticação e cookies via CloudFront, entrega de estáticos, checkout, envio de SMS OTP via AWS SNS, atualização no painel, processamento da fila, DLQ e restauração de backup. Confirmar as assinaturas de e-mail obrigatórias `ops_email` (tópico `alarms`) e `notification_email` (tópico `notifications`).
 
 ## Contrato das imagens
 
@@ -97,12 +97,12 @@ Para um HTTP 403 do CloudFront com `Your account must be verified before you can
 | Variável | `domain` | Domínio público obrigatório no Route 53 / CloudFront (até 56 caracteres). |
 | Variável | `hosted_zone_id` | ID obrigatório da zona pública no Route 53 (`^Z[A-Z0-9]+$`). |
 | Variável | `waf_enforce` | Ativa bloqueio (`none {}`) em `AWSManagedRulesCommonRuleSet` (padrão `true`). |
-| Variável | `runtime` | Objeto `{ web_digest, api_digest, worker_digest }` (`default = null`). |
+| Variável | `runtime` | Objeto obrigatório (`nullable = false`) `{ web_digest, api_digest, worker_digest }` com digests `sha256` completos. |
 | Variável | `instance_type` | Tipo EC2 das três frotas (padrão `"t3.small"`). |
 | Variável | `db_instance_class` | Classe do RDS PostgreSQL (padrão `"db.t4g.medium"`). |
 | Variável | `db_backup_retention_period` | Retenção de backups do RDS em dias (`1..35`, padrão `1`). |
-| Variável | `ops_email` | E-mail opcional para alarmes do CloudWatch (`aws_sns_topic_subscription.ops`). |
-| Variável | `notification_email` | E-mail opcional para notificações de pedido (`aws_sns_topic_subscription.notifications`). |
+| Variável | `ops_email` | E-mail obrigatório (`nullable = false`) para alarmes do CloudWatch (`aws_sns_topic_subscription.ops`). |
+| Variável | `notification_email` | E-mail obrigatório (`nullable = false`) para notificações de pedido (`aws_sns_topic_subscription.notifications`). |
 | Variável | `migration_release` | Tag opcional (`release-...`) para executor temporário de migração em EC2 (`migration-host.tf`). |
 | Saída | `application_url` | URL HTTPS pública da distribuição CloudFront (`https://${var.domain}`). |
 | Saída | `api_alb_dns` | DNS interno do ALB da frota `api` (`aws_lb.api.dns_name`). |
@@ -110,6 +110,10 @@ Para um HTTP 403 do CloudFront com `Your account must be verified before you can
 | Saída | `postgres_address` | Endereço privado do RDS PostgreSQL. |
 | Saída | `postgres_admin_secret_arn` | ARN do segredo mestre do RDS no Secrets Manager. |
 | Saída | `assets_bucket` | Nome do bucket S3 de estáticos e artefatos de release. |
+| Saída | `audit_bucket` | Nome do bucket S3 de logs de auditoria do CloudTrail (`aws_s3_bucket.audit.id`). |
 | Saída | `queue_url` | URL da fila SQS `jobs`. |
 | Saída | `notification_topic_arn` | ARN do tópico SNS `notifications`. |
+| Saída | `alarms_topic_arn` | ARN do tópico SNS `alarms` (`aws_sns_topic.alarms.arn`). |
+| Saída | `notifications_kms_key_arn` | ARN da chave KMS usada na criptografia do tópico SNS `notifications`. |
+| Saída | `s3_vpc_endpoint_id` | ID do VPC Gateway Endpoint S3 (`aws_vpc_endpoint.s3.id`). |
 | Saída | `runtime_secret_arns` | Mapa de ARNs dos segredos `${var.name}/runtime/{web,api,worker}`. |

@@ -62,16 +62,16 @@ variable "waf_enforce" {
 }
 
 variable "runtime" {
-  description = "Digests sha256 das imagens Docker nos repositórios ECR desta infraestrutura para ativação das frotas web, api e worker."
+  description = "Digests sha256 obrigatórios das imagens Docker nos repositórios ECR desta infraestrutura para ativação das frotas web, api e worker."
   type = object({
     web_digest    = string
     api_digest    = string
     worker_digest = string
   })
-  default = null
+  nullable = false
 
   validation {
-    condition = var.runtime == null ? true : alltrue([
+    condition = alltrue([
       for digest in [var.runtime.web_digest, var.runtime.api_digest, var.runtime.worker_digest] :
       can(regex("^sha256:[a-f0-9]{64}$", digest))
     ])
@@ -111,22 +111,23 @@ variable "db_backup_retention_period" {
 }
 
 variable "ops_email" {
+  description = "Email obrigatório para alarmes; o destinatário confirma a assinatura."
+  type        = string
+  nullable    = false
 
-  description = "Email opcional para alarmes; o destinatário confirma a assinatura."
-
-  type = string
-
-  default = null
-
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.ops_email))
+    error_message = "Informe um endereço de e-mail válido para alarmes."
+  }
 }
 
 variable "notification_email" {
-  description = "Email opcional para notificações de pedidos via SNS; o destinatário confirma a assinatura."
+  description = "Email obrigatório para notificações de pedidos via SNS; o destinatário confirma a assinatura."
   type        = string
-  default     = null
+  nullable    = false
 
   validation {
-    condition     = var.notification_email == null ? true : can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.notification_email))
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.notification_email))
     error_message = "Informe um endereço de e-mail válido para notificações."
   }
 }

@@ -2,18 +2,20 @@ flowchart TB
     USER["CLIENTE<br/>Navegador Web"]
 
     subgraph ENTRY["1. ENTRADA E DISTRIBUIÇÃO (HTTPS + WAF ATIVOS)"]
-        R53["Route 53<br/>Domínio obrigatório (var.domain)"]
+        R53["Route 53<br/>var.domain e origin.&lt;domain&gt;"]
         CF["CloudFront<br/>Distribuição (https-only)"]
         WAF["AWS WAFv2<br/>Bloqueio ativo + Rate Limit"]
         ACM_EDGE["ACM (us-east-1)<br/>Certificado Edge obrigatório"]
         ACM_ORIGIN["ACM (Região)<br/>Certificado Origin obrigatório"]
 
-        R53 --> CF
+        R53 -->|"A/AAAA (var.domain)"| CF
         WAF -. "Bloqueio ativo" .-> CF
         ACM_EDGE -. "TLS Edge" .-> CF
     end
 
     subgraph VPC["2. AWS VPC — DUAS ZONAS DE DISPONIBILIDADE"]
+        IGW["Internet Gateway (IGW)<br/>Rota 0.0.0.0/0 pública"]
+
         subgraph PUBLIC["SUB-REDES PÚBLICAS"]
             ALB_PUB["ALB Público<br/>HTTPS :443 (/healthz/)"]
             NAT["NAT Gateways<br/>Saída HTTPS :443"]
@@ -29,45 +31,58 @@ flowchart TB
             ALB_INT -->|"HTTP :4000"| ASG_API
         end
 
+        VPCE_S3["VPC Gateway Endpoint (S3)<br/>Rota privada S3"]
+
         subgraph DATA["SUB-REDES ISOLADAS DE DADOS"]
             RDS[("RDS PostgreSQL 16<br/>Multi-AZ (:5432)")]
         end
 
+        IGW -->|"Rota pública"| ALB_PUB
+        NAT -->|"Saída 0.0.0.0/0"| IGW
         ALB_PUB -->|"HTTP :8000"| ASG_WEB
         ASG_WEB -->|"Pedidos, cache e outbox :5432"| RDS
         ASG_API -->|"Leitura shop_order :5432"| RDS
         ASG_WORKER -->|"Outbox, shop_order e shop_orderevent :5432"| RDS
-        NAT -. "Saída HTTPS :443" .-> PRIVATE
+        PRIVATE -. "Saída HTTPS :443" .-> NAT
+        PRIVATE -. "Rota privada S3" .-> VPCE_S3
     end
 
+    R53 -->|"A Alias (origin.&lt;domain&gt;)"| ALB_PUB
     CF -->|"HTTPS :443 + Header secreto"| ALB_PUB
     ACM_ORIGIN -. "TLS :443" .-> ALB_PUB
 
     subgraph MESSAGING["3. MENSAGERIA E NOTIFICAÇÕES"]
-        SQS["SQS<br/>Fila de eventos"]
-        DLQ["SQS DLQ<br/>Falhas repetidas"]
+        SQS["SQS<br/>Fila de eventos (jobs)"]
+        DLQ["SQS DLQ<br/>Falhas repetidas (dead)"]
         SNS_NOTIF["SNS Notificações (KMS)<br/>Evento order.created"]
-        SUB_EMAIL["Assinatura E-mail<br/>notification_email (opcional)"]
+        SUB_EMAIL["Assinatura E-mail obrigatória<br/>notification_email"]
+        SNS_ALARMS["SNS Alarmes<br/>bytebistro-alarms"]
+        SUB_OPS["Assinatura E-mail obrigatória<br/>ops_email"]
         SNS_SMS["AWS SNS SMS<br/>OTP Transacional (+55)"]
+
         SQS -. "Redrive" .-> DLQ
+        SNS_NOTIF -->|"E-mail"| SUB_EMAIL
+        SNS_ALARMS -->|"E-mail"| SUB_OPS
     end
 
     ASG_WORKER -->|"Publica"| SQS
     SQS -->|"Consome"| ASG_WORKER
     ASG_WORKER -->|"order.created"| SNS_NOTIF
-    SNS_NOTIF -->|"E-mail"| SUB_EMAIL
     ASG_WEB -->|"SMS OTP (sns:Publish)"| SNS_SMS
 
     subgraph STORAGE["4. ARMAZENAMENTO"]
-        S3["Amazon S3<br/>Estáticos (OAC) e auditoria"]
+        S3_ASSETS["S3 Assets<br/>/static/* (OAC) e artefatos de release"]
+        S3_AUDIT["S3 Audit<br/>Logs do CloudTrail"]
         ECR["Amazon ECR<br/>3 imagens (web, api, worker)"]
     end
 
-    CF -->|"/static/* (OAC)"| S3
+    CF -->|"/static/* (OAC)"| S3_ASSETS
+    VPCE_S3 -->|"Acesso privado"| S3_ASSETS
     ECR -. "Pull 3 imagens" .-> PRIVATE
 
     subgraph SECURITY["5. SEGURANÇA, CONFIGURAÇÃO E OPERAÇÃO"]
         IAM["IAM<br/>3 roles isoladas (web, api, worker)"]
+        KMS["AWS KMS<br/>Chave de criptografia SNS"]
         SSM["SSM Parameter Store<br/>AMI AL2023 automática"]
         SM["Secrets Manager<br/>Segredos runtime e RDS"]
         CW["CloudWatch<br/>Logs e alarmes HealthyHostCount (web/api)"]
@@ -76,13 +91,30 @@ flowchart TB
     end
 
     IAM -. "Autoriza acessos" .-> PRIVATE
+    KMS -. "Criptografa" .-> SNS_NOTIF
+    KMS -. "Autorizado via IAM" .-> ASG_WORKER
     SSM -. "Resolve AMI AL2023" .-> PRIVATE
     SM -. "Injeta segredos" .-> PRIVATE
     PRIVATE -. "Logs e métricas" .-> CW
     RDS -. "Métricas" .-> CW
-    CT -. "Logs" .-> S3
+    CW -->|"Alarmes"| SNS_ALARMS
+    CT -. "Logs" .-> S3_AUDIT
     CT -. "Métricas" .-> CW
     RDS -. "Backup diário" .-> BACKUP
+
+    subgraph DELIVERY["6. ENTREGA E MIGRAÇÃO"]
+        CB["CodeBuild<br/>Projetos build e migrate"]
+        MIG_EC2["EC2 temporária de migração (fallback)<br/>Instância sob demanda (migration_release)"]
+    end
+
+    CB -->|"Push 3 imagens"| ECR
+    CB -->|"Source, /static/* e releases"| S3_ASSETS
+    CB -->|"Migrações :5432"| RDS
+    CB -. "Lê/grava segredos" .-> SM
+    CB -. "Logs de release" .-> CW
+    MIG_EC2 -->|"Source e resultado"| S3_ASSETS
+    MIG_EC2 -->|"Migrações :5432"| RDS
+    MIG_EC2 -. "Lê/grava segredos" .-> SM
 
     USER -->|"DNS obrigatório"| R53
     USER -->|"HTTPS"| CF
