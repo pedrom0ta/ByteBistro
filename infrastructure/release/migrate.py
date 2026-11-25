@@ -114,7 +114,17 @@ def migrate():
         sslmode="verify-full", sslrootcert=bundle, connect_timeout=10,
     ) as connection:
         connection.execute("GRANT SELECT ON shop_order TO bytebistro_api")
+        connection.execute("GRANT SELECT ON shop_order TO bytebistro_worker")
         connection.execute("GRANT SELECT, UPDATE ON shop_orderoutbox TO bytebistro_worker")
+        connection.execute("GRANT INSERT ON shop_orderevent TO bytebistro_worker")
+        seq_row = connection.execute("SELECT pg_get_serial_sequence('shop_orderevent', 'id')").fetchone()
+        if seq_row and seq_row[0]:
+            seq_parts = connection.execute("SELECT parse_ident(%s)", (seq_row[0],)).fetchone()[0]
+            connection.execute(
+                sql.SQL("GRANT USAGE, SELECT ON SEQUENCE {} TO bytebistro_worker").format(
+                    sql.Identifier(*seq_parts)
+                )
+            )
     print("Database migrations and runtime grants ready.")
 
 

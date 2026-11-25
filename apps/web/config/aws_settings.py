@@ -28,6 +28,8 @@ STATIC_ROOT = Path("/app/collected-static")
 BYTEBISTRO_GRAPHQL_URL = os.environ.get("BYTEBISTRO_GRAPHQL_URL")
 GRAPHQL_SERVICE_TOKEN = required_env("GRAPHQL_SERVICE_TOKEN") if BYTEBISTRO_GRAPHQL_URL else ""
 BYTEBISTRO_OUTBOX_ENABLED = os.environ.get("BYTEBISTRO_OUTBOX_ENABLED", "0") == "1"
+SMS_PROVIDER = os.environ.get("SMS_PROVIDER") or "shop.sms.SnsSmsProvider"
+SMS_COUNTRY_CODE = os.environ.get("SMS_COUNTRY_CODE") or "+55"
 CACHES = {
     "default": {
         "BACKEND": "config.aws_cache.PostgresCache",

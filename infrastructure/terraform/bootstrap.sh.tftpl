@@ -31,8 +31,11 @@ docker run --detach --restart unless-stopped --name '${service}' --network byteb
   --publish 8000:8000 \
   --env BYTEBISTRO_PUBLIC_HOST='${domain}' \
   --env BYTEBISTRO_ORIGIN_HOST='${origin_domain}' \
-  --env BYTEBISTRO_GRAPHQL_URL='http://api:4000/graphql' \
+  --env BYTEBISTRO_GRAPHQL_URL='http://${api_alb_dns}:4000/graphql' \
   --env BYTEBISTRO_OUTBOX_ENABLED='1' \
+%{ endif ~}
+%{ if service == "api" ~}
+  --publish 4000:4000 \
 %{ endif ~}
 %{ if service == "worker" ~}
   --env BYTEBISTRO_QUEUE_URL='${queue_url}' \

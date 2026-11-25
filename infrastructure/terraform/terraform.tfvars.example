@@ -1,7 +1,21 @@
 region = "us-east-1"
 
-# Leave both unset to use the CloudFront HTTPS hostname.
-# domain = "bytebistro.example.com"
-# hosted_zone_id = "Z_REPLACE_ME"
+# Mandatory public custom domain and existing Route 53 public hosted zone ID.
+domain         = "bytebistro.example.com"
+hosted_zone_id = "Z1234567890ABC"
 
-# runtime = null provisions the base without application instances.
+# Enforce blocking mode on AWSManagedRulesCommonRuleSet (set false for count-only mode).
+waf_enforce = true
+
+# Optional email subscriptions (AWS sends a confirmation email to each address).
+# notification_email = "orders@example.com"
+# ops_email          = "ops@example.com"
+
+# runtime = null provisions the base infrastructure without application ASGs (web, api, worker).
+# After publishing images and running database migrations, activate all 3 fleets (6 EC2 minimum).
+# AMI (Amazon Linux 2023) and Secrets Manager ARNs are resolved automatically by Terraform.
+# runtime = {
+#   web_digest    = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+#   api_digest    = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+#   worker_digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+# }

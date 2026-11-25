@@ -64,10 +64,17 @@ class OrderEvent(models.Model):
 
     @property
     def label(self):
-        return {"received": "Pedido recebido", "accept": "Aceito · preparo iniciado",
-                "ready": "Preparo concluído", "dispatch": "Saiu para entrega",
-                "complete": "Entregue", "reject": "Recusado", "cancel": "Cancelado",
-                "paid": "Recebimento registrado"}[self.action]
+        return {
+            "received": "Pedido recebido",
+            "accept": "Aceito · preparo iniciado",
+            "ready": "Preparo concluído",
+            "dispatch": "Saiu para entrega",
+            "complete": "Entregue",
+            "reject": "Recusado",
+            "cancel": "Cancelado",
+            "paid": "Recebimento registrado",
+            "notified": "Notificação enviada",
+        }.get(self.action, self.action)
 
 
 class OrderOutbox(models.Model):

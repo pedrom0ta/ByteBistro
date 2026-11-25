@@ -33,84 +33,50 @@ variable "name" {
 
 
 variable "domain" {
-  description = "Optional custom hostname. Null uses the CloudFront distribution hostname."
+  description = "Mandatory public custom hostname served by CloudFront and Route 53."
   type        = string
-  default     = null
+  nullable    = false
+
   validation {
-    condition     = var.domain == null ? true : length(var.domain) <= 56 && can(regex("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?[.])+[a-z][a-z0-9-]*$", var.domain))
+    condition     = length(var.domain) <= 56 && can(regex("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?[.])+[a-z][a-z0-9-]*$", var.domain))
     error_message = "Use a lowercase DNS hostname of up to 56 characters."
   }
 }
 
 variable "hosted_zone_id" {
-  description = "Route 53 public zone ID when using a custom domain."
+  description = "Mandatory Route 53 public hosted zone ID for the custom domain and ACM validation."
   type        = string
-  default     = null
+  nullable    = false
 
   validation {
-    condition     = var.domain == null ? var.hosted_zone_id == null : can(regex("^Z[A-Z0-9]+$", var.hosted_zone_id))
-    error_message = "Set both domain and hosted_zone_id, or leave both unset."
+    condition     = can(regex("^Z[A-Z0-9]+$", var.hosted_zone_id))
+    error_message = "Provide a valid Route 53 public hosted zone ID (for example, Z1234567890ABC)."
   }
 }
 
-
+variable "waf_enforce" {
+  description = "Enforce blocking for AWSManagedRulesCommonRuleSet on the CloudFront Web ACL (false uses count mode)."
+  type        = bool
+  default     = true
+  nullable    = false
+}
 
 variable "runtime" {
-
-  description = "AMI Linux x86_64 com Docker, AWS CLI v2, Python 3 e SSM Agent. Imagens referenciam digests dos ECRs desta infraestrutura."
-
+  description = "Digests sha256 das imagens Docker nos repositórios ECR desta infraestrutura para ativação das frotas web, api e worker."
   type = object({
-
-    ami_id = string
-
-    web_digest = string
-
-    api_digest = string
-
+    web_digest    = string
+    api_digest    = string
     worker_digest = string
-
-    runtime_secret_arns = object({
-
-      web = string
-
-      api = string
-
-      worker = string
-
-    })
-
   })
-
   default = null
 
   validation {
-
     condition = var.runtime == null ? true : alltrue([
-
-      for arn in values(var.runtime.runtime_secret_arns) :
-
-      can(regex("^arn:[a-z0-9-]+:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$", arn))
-
-    ])
-
-    error_message = "Informe ARNs completos dos segredos de execução."
-
-  }
-
-  validation {
-
-    condition = var.runtime == null ? true : alltrue([
-
       for digest in [var.runtime.web_digest, var.runtime.api_digest, var.runtime.worker_digest] :
-
       can(regex("^sha256:[a-f0-9]{64}$", digest))
-
     ])
-
     error_message = "Forneça digests sha256 completos para as três imagens."
-
   }
-
 }
 
 
@@ -152,5 +118,16 @@ variable "ops_email" {
 
   default = null
 
+}
+
+variable "notification_email" {
+  description = "Email opcional para notificações de pedidos via SNS; o destinatário confirma a assinatura."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.notification_email == null ? true : can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.notification_email))
+    error_message = "Informe um endereço de e-mail válido para notificações."
+  }
 }
 

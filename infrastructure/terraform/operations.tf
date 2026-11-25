@@ -160,6 +160,24 @@ resource "aws_cloudwatch_metric_alarm" "web" {
   alarm_actions       = [aws_sns_topic.alarms.arn]
 }
 
+resource "aws_cloudwatch_metric_alarm" "api" {
+  count       = var.runtime == null ? 0 : 1
+  alarm_name  = "${var.name}-api-unhealthy"
+  namespace   = "AWS/ApplicationELB"
+  metric_name = "HealthyHostCount"
+  dimensions = {
+    LoadBalancer = aws_lb.api.arn_suffix
+    TargetGroup  = aws_lb_target_group.api.arn_suffix
+  }
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 3
+  comparison_operator = "LessThanThreshold"
+  threshold           = 2
+  treat_missing_data  = "breaching"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+}
+
 resource "aws_cloudwatch_metric_alarm" "database" {
   alarm_name          = "${var.name}-db-storage"
   namespace           = "AWS/RDS"

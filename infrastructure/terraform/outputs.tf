@@ -25,3 +25,7 @@ output "queue_url" {
 output "notification_topic_arn" {
   value = aws_sns_topic.notifications.arn
 }
+
+output "api_alb_dns" {
+  value = aws_lb.api.dns_name
+}

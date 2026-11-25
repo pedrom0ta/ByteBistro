@@ -9,11 +9,14 @@ datasource db {
 
 // These tables are managed by the Django migrations.
 model Order {
-  id         String  @id @db.Uuid
+  id         String   @id @db.Uuid
   owner      String
-  customerId BigInt? @map("customer_id")
+  customerId BigInt?  @map("customer_id")
   mode       String
+  payment    String
+  total      Int
   stage      Int
+  created    DateTime @db.Timestamptz(6)
   reason     String
 
   @@map("shop_order")
@@ -31,4 +34,15 @@ model Outbox {
   notifyLeaseToken String?   @map("notify_lease_token") @db.Uuid
 
   @@map("shop_orderoutbox")
+}
+
+model OrderEvent {
+  id      BigInt   @id @default(autoincrement())
+  orderId String   @map("order_id") @db.Uuid
+  action  String
+  actorId Int?     @map("actor_id")
+  reason  String
+  created DateTime @db.Timestamptz(6)
+
+  @@map("shop_orderevent")
 }

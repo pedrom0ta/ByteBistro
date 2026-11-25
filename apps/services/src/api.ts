@@ -1,42 +1,43 @@
-import { timingSafeEqual } from "node:crypto";
-import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
 import { PrismaClient } from "@prisma/client";
-import { GraphQLError } from "graphql";
+import { createApiServer } from "./api-server.js";
 import { required } from "./config.js";
-import { createOrderStatusLookup } from "./order-status.js";
 
-const authorization = Buffer.from(`Bearer ${required("GRAPHQL_SERVICE_TOKEN")}`);
+const token = required("GRAPHQL_SERVICE_TOKEN");
+const rawPort = process.env.PORT;
+const port = rawPort ? Number(rawPort) : 4000;
+if (!Number.isInteger(port) || port < 0 || port > 65535) {
+  throw new Error(`Invalid PORT: ${rawPort}`);
+}
+
 const prisma = new PrismaClient();
-const typeDefs = `#graphql
-  type OrderStatus {
-    stage: Int!
-    status: String!
-    finished: Boolean!
-    reason: String!
-  }
-  type Query {
-    orderStatus(id: ID!, owner: String!, customerId: ID): OrderStatus
-  }
-`;
+const api = await createApiServer({ token, orders: prisma.order });
 
-const server = new ApolloServer({
-  typeDefs,
-  introspection: false,
-  includeStacktraceInErrorResponses: false,
-  resolvers: {
-    Query: { orderStatus: createOrderStatusLookup(prisma.order) },
-  },
+await new Promise<void>((resolve, reject) => {
+  api.httpServer.once("error", reject);
+  api.httpServer.listen(port, () => {
+    api.httpServer.off("error", reject);
+    resolve();
+  });
 });
 
-await startStandaloneServer(server, {
-  listen: { port: 4000 },
-  context: async ({ req }) => {
-    const received = Buffer.from(req.headers.authorization ?? "");
-    if (received.length !== authorization.length || !timingSafeEqual(received, authorization)) {
-      throw new GraphQLError("Unauthorized", { extensions: { code: "UNAUTHENTICATED", http: { status: 401 } } });
-    }
-    return {};
-  },
-});
-console.info("Apollo listening on port 4000");
+console.info(`Apollo listening on port ${port}`);
+
+let closing = false;
+const shutdown = async () => {
+  if (closing) return;
+  closing = true;
+  try {
+    await api.close();
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => {
+    void shutdown().catch((error) => {
+      console.error("Failed to shut down API server cleanly", error);
+      process.exitCode = 1;
+    });
+  });
+}

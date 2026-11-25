@@ -72,7 +72,7 @@ Os testes usam um banco temporário. Cobrem restaurante, delivery com cadastro e
 | `shop/catalog.py` | Catálogo de seis categorias, opções e adicionais |
 | `shop/services.py` | Carrinho, preços em centavos, histórico e confirmação |
 | `shop/models.py`, `migrations/` | Persistência demonstrativa de clientes e pedidos |
-| `shop/sms.py` | Emissão, verificação, limites e provedor de desenvolvimento |
+| `shop/sms.py` | Emissão, verificação, limites e provedores de SMS (`ConsoleProvider` local e `SnsSmsProvider` via AWS SNS) |
 | `shop/management/commands/` | Avanço manual da etapa do pedido |
 | `templates/`, `templates/components/` | Telas, navegação, cards e resumos reutilizáveis |
 | `static/` | Fotografias, marca, estilos e comportamento do navegador |
@@ -91,8 +91,8 @@ A marca ByteBistro foi recortada do cabeçalho da referência fornecida. As foto
 
 ## Integração com a API de status
 
-Com `BYTEBISTRO_GRAPHQL_URL` configurada, o Django consulta o status na API GraphQL em [`apps/services/`](../services/README.md). O adaptador usa `GRAPHQL_SERVICE_TOKEN`, identidade da sessão e timeout. O checkout e as operações do painel gravam pelo ORM Django. Com `BYTEBISTRO_OUTBOX_ENABLED=1`, o checkout grava a outbox na mesma transação.
+Com `BYTEBISTRO_GRAPHQL_URL` configurada (apontando na AWS para o ALB interno em `http://${api_alb_dns}:4000/graphql`), o Django consulta o status na API GraphQL em [`apps/services/`](../services/README.md). O adaptador usa `GRAPHQL_SERVICE_TOKEN`, identidade da sessão e timeout. O checkout e as operações do painel gravam pelo ORM Django. Com `BYTEBISTRO_OUTBOX_ENABLED=1`, o checkout grava a outbox na mesma transação, e o worker registra `action = "notified"` (`"Notificação enviada"` em `OrderEvent.label`) em `shop_orderevent` ao publicar no SNS.
 
-O provedor de demonstração exibe o código de verificação no console. A aplicação permite selecionar um provedor em `SMS_PROVIDER`, com o contrato `issue(phone) -> challenge` e `verify(challenge, code) -> bool`. Na configuração distribuída, os desafios e limites de verificação usam cache compartilhado no PostgreSQL.
+O provedor de demonstração (`ConsoleProvider`, padrão em `config/settings.py`) exige `DEBUG=True` e exibe o código de verificação no console. Na configuração AWS (`config/aws_settings.py`, com `boto3>=1.34,<2`, `gunicorn` e `psycopg` declarados em `requirements-aws.txt`), `SMS_PROVIDER` usa por padrão `shop.sms.SnsSmsProvider`, que normaliza números brasileiros para E.164 com `SMS_COUNTRY_CODE` (padrão `+55`) e envia SMS `Transactional` via AWS SNS usando a permissão `sns:Publish` da role da frota `web`. Ambos os provedores implementam `issue(phone) -> challenge` e `verify(challenge, code) -> bool`, usando cache compartilhado no PostgreSQL na configuração distribuída.
 
 O banco `demo.sqlite3` e a chave `.local.key` são dados locais da demonstração. Use dados fictícios.

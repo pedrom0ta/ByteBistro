@@ -1,5 +1,4 @@
 resource "aws_acm_certificate" "edge" {
-  count             = local.custom_domain ? 1 : 0
   provider          = aws.edge
   domain_name       = var.domain
   validation_method = "DNS"
@@ -9,7 +8,6 @@ resource "aws_acm_certificate" "edge" {
 }
 
 resource "aws_acm_certificate" "origin" {
-  count             = local.custom_domain ? 1 : 0
   domain_name       = local.origin_domain
   validation_method = "DNS"
   lifecycle {
@@ -18,14 +16,14 @@ resource "aws_acm_certificate" "origin" {
 }
 
 locals {
-  certificates = local.custom_domain ? {
-    edge   = one(aws_acm_certificate.edge[0].domain_validation_options)
-    origin = one(aws_acm_certificate.origin[0].domain_validation_options)
-  } : {}
+  certificates = {
+    edge   = one(aws_acm_certificate.edge.domain_validation_options)
+    origin = one(aws_acm_certificate.origin.domain_validation_options)
+  }
 }
 
 resource "aws_route53_record" "validation" {
-  for_each = local.custom_domain ? toset(["edge", "origin"]) : toset([])
+  for_each = toset(["edge", "origin"])
   zone_id  = var.hosted_zone_id
   name     = local.certificates[each.key].resource_record_name
   type     = local.certificates[each.key].resource_record_type
@@ -34,15 +32,13 @@ resource "aws_route53_record" "validation" {
 }
 
 resource "aws_acm_certificate_validation" "edge" {
-  count                   = local.custom_domain ? 1 : 0
   provider                = aws.edge
-  certificate_arn         = aws_acm_certificate.edge[0].arn
+  certificate_arn         = aws_acm_certificate.edge.arn
   validation_record_fqdns = [aws_route53_record.validation["edge"].fqdn]
 }
 
 resource "aws_acm_certificate_validation" "origin" {
-  count                   = local.custom_domain ? 1 : 0
-  certificate_arn         = aws_acm_certificate.origin[0].arn
+  certificate_arn         = aws_acm_certificate.origin.arn
   validation_record_fqdns = [aws_route53_record.validation["origin"].fqdn]
 }
 
@@ -73,10 +69,10 @@ resource "aws_lb_target_group" "web" {
 
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.web.arn
-  port              = local.origin_port
-  protocol          = local.custom_domain ? "HTTPS" : "HTTP"
-  certificate_arn   = local.custom_domain ? aws_acm_certificate_validation.origin[0].certificate_arn : null
-  ssl_policy        = local.custom_domain ? "ELBSecurityPolicy-TLS13-1-2-2021-06" : null
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate_validation.origin.certificate_arn
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
   default_action {
     type = "fixed-response"
     fixed_response {
@@ -102,7 +98,6 @@ resource "aws_lb_listener_rule" "cloudfront" {
 }
 
 resource "aws_route53_record" "origin" {
-  count   = local.custom_domain ? 1 : 0
   zone_id = var.hosted_zone_id
   name    = local.origin_domain
   type    = "A"
@@ -124,7 +119,14 @@ resource "aws_wafv2_web_acl" "edge" {
     name     = "common-rules"
     priority = 10
     override_action {
-      count {}
+      dynamic "none" {
+        for_each = var.waf_enforce ? [1] : []
+        content {}
+      }
+      dynamic "count" {
+        for_each = var.waf_enforce ? [] : [1]
+        content {}
+      }
     }
     statement {
       managed_rule_group_statement {
@@ -183,10 +185,10 @@ resource "aws_cloudfront_origin_access_control" "assets" {
 resource "aws_cloudfront_distribution" "app" {
   enabled         = true
   is_ipv6_enabled = true
-  aliases         = local.custom_domain ? [var.domain] : []
+  aliases         = [var.domain]
   web_acl_id      = aws_wafv2_web_acl.edge.arn
   origin {
-    domain_name = local.custom_domain ? aws_route53_record.origin[0].fqdn : local.origin_domain
+    domain_name = aws_route53_record.origin.fqdn
     origin_id   = "app"
     custom_header {
       name  = "X-ByteBistro-Origin"
@@ -199,7 +201,7 @@ resource "aws_cloudfront_distribution" "app" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = local.custom_domain ? "https-only" : "http-only"
+      origin_protocol_policy = "https-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -231,15 +233,15 @@ resource "aws_cloudfront_distribution" "app" {
     }
   }
   viewer_certificate {
-    cloudfront_default_certificate = !local.custom_domain
-    acm_certificate_arn            = local.custom_domain ? aws_acm_certificate_validation.edge[0].certificate_arn : null
-    ssl_support_method             = local.custom_domain ? "sni-only" : null
-    minimum_protocol_version       = local.custom_domain ? "TLSv1.2_2021" : null
+    cloudfront_default_certificate = false
+    acm_certificate_arn            = aws_acm_certificate_validation.edge.certificate_arn
+    ssl_support_method             = "sni-only"
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
 }
 
 resource "aws_route53_record" "public" {
-  for_each = local.custom_domain ? toset(["A", "AAAA"]) : toset([])
+  for_each = toset(["A", "AAAA"])
   zone_id  = var.hosted_zone_id
   name     = var.domain
   type     = each.key

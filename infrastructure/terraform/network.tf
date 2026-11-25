@@ -1,11 +1,9 @@
 locals {
   zones         = { for i, az in slice(data.aws_availability_zones.available.names, 0, 2) : az => i }
   roles         = toset(["web", "api", "worker"])
-  fleets        = toset(["web", "worker"])
-  custom_domain = var.domain != null
-  origin_domain = local.custom_domain ? "origin.${var.domain}" : aws_lb.web.dns_name
-  public_domain = local.custom_domain ? var.domain : aws_cloudfront_distribution.app.domain_name
-  origin_port   = local.custom_domain ? 443 : 80
+  fleets        = toset(["web", "api", "worker"])
+  origin_domain = "origin.${var.domain}"
+  public_domain = var.domain
 }
 
 resource "aws_vpc" "main" {
@@ -101,7 +99,7 @@ data "aws_ec2_managed_prefix_list" "cloudfront" {
 }
 
 resource "aws_security_group" "main" {
-  for_each = toset(["alb", "web", "worker", "db"])
+  for_each = toset(["alb", "internal_alb", "web", "api", "worker", "db"])
   name     = "${var.name}-${each.key}"
   vpc_id   = aws_vpc.main.id
 }
@@ -110,8 +108,8 @@ resource "aws_vpc_security_group_ingress_rule" "edge" {
   security_group_id = aws_security_group.main["alb"].id
   prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront.id
   ip_protocol       = "tcp"
-  from_port         = local.origin_port
-  to_port           = local.origin_port
+  from_port         = 443
+  to_port           = 443
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web" {
@@ -128,6 +126,38 @@ resource "aws_vpc_security_group_egress_rule" "alb" {
   ip_protocol                  = "tcp"
   from_port                    = 8000
   to_port                      = 8000
+}
+
+resource "aws_vpc_security_group_egress_rule" "web_api" {
+  security_group_id            = aws_security_group.main["web"].id
+  referenced_security_group_id = aws_security_group.main["internal_alb"].id
+  ip_protocol                  = "tcp"
+  from_port                    = 4000
+  to_port                      = 4000
+}
+
+resource "aws_vpc_security_group_ingress_rule" "internal_alb" {
+  security_group_id            = aws_security_group.main["internal_alb"].id
+  referenced_security_group_id = aws_security_group.main["web"].id
+  ip_protocol                  = "tcp"
+  from_port                    = 4000
+  to_port                      = 4000
+}
+
+resource "aws_vpc_security_group_egress_rule" "internal_alb" {
+  security_group_id            = aws_security_group.main["internal_alb"].id
+  referenced_security_group_id = aws_security_group.main["api"].id
+  ip_protocol                  = "tcp"
+  from_port                    = 4000
+  to_port                      = 4000
+}
+
+resource "aws_vpc_security_group_ingress_rule" "api" {
+  security_group_id            = aws_security_group.main["api"].id
+  referenced_security_group_id = aws_security_group.main["internal_alb"].id
+  ip_protocol                  = "tcp"
+  from_port                    = 4000
+  to_port                      = 4000
 }
 
 resource "aws_vpc_security_group_ingress_rule" "database" {
@@ -155,4 +185,35 @@ resource "aws_vpc_security_group_egress_rule" "https" {
   ip_protocol       = "tcp"
   from_port         = 443
   to_port           = 443
+}
+
+resource "aws_lb" "api" {
+  name                       = "${var.name}-api"
+  internal                   = true
+  load_balancer_type         = "application"
+  security_groups            = [aws_security_group.main["internal_alb"].id]
+  subnets                    = [for subnet in aws_subnet.private : subnet.id]
+  drop_invalid_header_fields = true
+}
+
+resource "aws_lb_target_group" "api" {
+  name                 = "${var.name}-api"
+  port                 = 4000
+  protocol             = "HTTP"
+  vpc_id               = aws_vpc.main.id
+  deregistration_delay = 60
+  health_check {
+    path    = "/healthz"
+    matcher = "200"
+  }
+}
+
+resource "aws_lb_listener" "api" {
+  load_balancer_arn = aws_lb.api.arn
+  port              = 4000
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
 }

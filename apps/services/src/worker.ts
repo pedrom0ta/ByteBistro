@@ -1,11 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import { PrismaClient } from "@prisma/client";
-import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
-import {
-  DeleteMessageCommand, ReceiveMessageCommand, SendMessageCommand, SQSClient,
-} from "@aws-sdk/client-sqs";
-import { required, uuidPattern } from "./config.js";
+import { SNSClient } from "@aws-sdk/client-sns";
+import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { required } from "./config.js";
+import { consumeOnce } from "./worker-notifications.js";
 
 const prisma = new PrismaClient();
 const queueUrl = required("BYTEBISTRO_QUEUE_URL");
@@ -50,52 +49,14 @@ async function publishOutbox() {
 }
 
 async function consume() {
-  const response = await sqs.send(new ReceiveMessageCommand({
-    QueueUrl: queueUrl,
-    MaxNumberOfMessages: 1,
-    WaitTimeSeconds: 20,
-  }), { abortSignal: AbortSignal.any([stop.signal, AbortSignal.timeout(35_000)]) });
-
-  for (const message of response.Messages ?? []) {
-    if (stop.signal.aborted) break;
-    const id = message.Body;
-    const receipt = message.ReceiptHandle;
-    if (!id || !receipt || !uuidPattern.test(id)) {
-      console.warn("Invalid queue message; left for the DLQ.");
-      continue;
-    }
-    const event = await prisma.outbox.findUnique({
-      where: { id },
-      select: { orderId: true, notifiedAt: true },
-    });
-    if (!event) {
-      console.warn("Outbox event missing; message left for the DLQ.", id);
-      continue;
-    }
-    if (!event.notifiedAt) {
-      const notifyLeaseToken = randomUUID();
-      const claim = await prisma.outbox.updateMany({
-        where: {
-          id, notifiedAt: null,
-          OR: [{ notifyLeaseUntil: null }, { notifyLeaseUntil: { lte: new Date() } }],
-        },
-        data: { notifyLeaseToken, notifyLeaseUntil: new Date(Date.now() + 60_000) },
-      });
-      if (!claim.count) continue;
-      await sns.send(new PublishCommand({
-        TopicArn: topicArn,
-        Message: JSON.stringify({ id, type: "order.created", orderId: event.orderId }),
-      }), { abortSignal: AbortSignal.timeout(20_000) });
-      const updated = await prisma.outbox.updateMany({
-        where: { id, notifyLeaseToken },
-        data: { notifiedAt: new Date(), notifyLeaseToken: null, notifyLeaseUntil: null },
-      });
-      if (!updated.count) continue;
-    }
-    await sqs.send(new DeleteMessageCommand({ QueueUrl: queueUrl, ReceiptHandle: receipt }), {
-      abortSignal: AbortSignal.timeout(20_000),
-    });
-  }
+  await consumeOnce({
+    prisma,
+    sqs,
+    sns,
+    queueUrl,
+    topicArn,
+    signal: stop.signal,
+  });
 }
 
 async function processLoop(task: () => Promise<void>, delay: number) {

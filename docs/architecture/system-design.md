@@ -23,30 +23,30 @@ A configuração distribuída implementa a consulta de status via GraphQL e o pr
 
 | Componente | Tecnologia | Responsabilidade |
 |---|---|---|
-| Aplicação web | Django e `urllib.request` | Vitrine, painel, sessão, regras de negócio, checkout e consulta de status pela API quando configurada |
-| API de status | Node.js, TypeScript e Apollo Server | Consulta autenticada de status do pedido |
-| Worker | Node.js, Prisma, SQS e SNS | Publicação da outbox e encaminhamento de notificações |
-| Persistência | SQLite na demonstração e PostgreSQL na configuração distribuída | Django gerencia modelos e migrações. Prisma consulta pedidos e processa a outbox. |
+| Aplicação web | Django, `urllib.request` e `boto3` (AWS) | Vitrine, painel, sessão, regras de negócio, checkout, consulta de status via API (`BYTEBISTRO_GRAPHQL_URL`) e envio de OTP por SMS (`ConsoleProvider` local / `SnsSmsProvider` via AWS SNS) |
+| API de status | Node.js, TypeScript e Apollo Server | Consulta GraphQL autenticada de status do pedido (`POST /graphql`) e health check sem autenticação (`GET /healthz`) na porta `4000` |
+| Worker | Node.js, Prisma, SQS e SNS | Publicação da outbox no SQS, envio de notificações enriquecidas ao SNS e registro de `"notified"` em `shop_orderevent` |
+| Persistência | SQLite na demonstração e PostgreSQL na configuração distribuída | Django gerencia modelos e migrações. Prisma consulta pedidos e processa a outbox e eventos de notificação. |
 
 O projeto inclui Dockerfiles para web, API e worker. [Guia Docker](../deployment/docker-guide.md)
 
 ### 2.1. Cliente web — Django
 
-O Django renderiza páginas, mantém sessão e permissões e valida as requisições do cliente. Quando `BYTEBISTRO_GRAPHQL_URL` está configurada, o adaptador consulta o status via HTTP/GraphQL com token de serviço, dados da sessão e timeout. [Adaptador](../../apps/web/shop/graphql.py)
+O Django renderiza páginas, mantém sessão e permissões e valida as requisições do cliente. Quando `BYTEBISTRO_GRAPHQL_URL` está configurada (apontando na AWS para o ALB interno em `http://${api_alb_dns}:4000/graphql`), o adaptador consulta o status via HTTP/GraphQL com token de serviço, dados da sessão e timeout. Na configuração AWS (`config/aws_settings.py`), a verificação de telefone no delivery usa `SnsSmsProvider` (`shop/sms.py`, com `boto3` e `SMS_COUNTRY_CODE = "+55"`). [Adaptador](../../apps/web/shop/graphql.py)
 
 ### 2.2. Backend — Node.js e TypeScript
 
-O Apollo expõe a query `orderStatus`. O resolver consulta o pedido por ID e limita o resultado à sessão ou conta informada pelo Django. A transferência das escritas de negócio é uma evolução. [Serviços](../../apps/services/README.md) · [Contrato proposto](system-architecture.md#contrato-proposto)
+O Apollo expõe a query `orderStatus` em `POST /graphql` (protegida por `Authorization: Bearer <GRAPHQL_SERVICE_TOKEN>`) e um endpoint de saúde sem autenticação `GET /healthz` (HTTP `200`) para `aws_lb_target_group.api`. O resolver consulta o pedido por ID e limita o resultado à sessão ou conta informada pelo Django. A transferência das escritas de negócio é uma evolução. [Serviços](../../apps/services/README.md) · [Contrato proposto](system-architecture.md#contrato-proposto)
 
 ### 2.3. Persistência — PostgreSQL
 
-O Django grava pedidos no PostgreSQL e aplica as migrações. A API acessa o PostgreSQL via Prisma para ler o status. O worker consulta e atualiza a outbox. [Banco de dados](database.md)
+O Django grava pedidos no PostgreSQL e aplica as migrações. A API acessa o PostgreSQL via Prisma para ler o status em `shop_order`. O worker lê metadados do pedido em `shop_order`, consulta e atualiza `shop_orderoutbox` e registra `action = "notified"` em `shop_orderevent`. [Banco de dados](database.md)
 
 ## 3. Comunicação entre os componentes
 
 Na demonstração, o navegador envia formulários e consultas de status ao Django. As views chamam serviços Python no mesmo processo e acessam o SQLite via ORM.
 
-Na configuração distribuída, o navegador consulta o mesmo endereço de acompanhamento no Django. O Django envia a query `orderStatus` ao Apollo. O resolver consulta o PostgreSQL via Prisma e o Django devolve o JSON ao navegador. Uma sessão sem acesso recebe 404. Uma falha temporária da API recebe 503.
+Na configuração distribuída, o navegador consulta o mesmo endereço de acompanhamento no Django. Na configuração AWS, o Django envia a query `orderStatus` ao ALB interno (porta `4000`), que encaminha à frota `api` (Apollo). O resolver consulta o PostgreSQL via Prisma e o Django devolve o JSON ao navegador. Uma sessão sem acesso recebe 404. Uma falha temporária da API recebe 503.
 
 ## 4. Fluxo de realização de pedidos
 
@@ -72,7 +72,7 @@ O SNS pode distribuir notificações para diferentes consumidores.
 
 A Dead Letter Queue (DLQ) recebe mensagens que não conseguiram ser processadas após as tentativas configuradas.
 
-O worker publica o evento no SQS, consome a fila e notifica o SNS. Ele usa um identificador estável por evento e exclui a mensagem após o processamento. Assinantes devem deduplicar pelo identificador, pois uma falha entre a publicação ao SNS e a confirmação no banco pode causar reentrega.
+O worker publica o evento no SQS, consome a fila, lê os metadados do pedido em `shop_order` (`mode`, `total`, `payment`, `created`), publica no tópico SNS `notifications` (`Subject` e payload JSON `order.created` com `id`, `type`, `orderId`, `orderNumber`, `mode`, `totalCents`, `payment` e `createdAt`, atendendo assinaturas como `notification_email` via `aws_sns_topic_subscription.notifications`) e, na mesma transação em que marca `notifiedAt`, grava `action = "notified"` (`"Notificação enviada"` em `OrderEvent.label`) em `shop_orderevent`. Ele usa um identificador estável por evento e exclui a mensagem após o processamento. Assinantes devem deduplicar pelo identificador, pois uma falha entre a publicação ao SNS e a confirmação no banco pode causar reentrega.
 
 Também devem ser considerados:
 
@@ -88,29 +88,29 @@ Também devem ser considerados:
 
 A infraestrutura proposta utiliza serviços gerenciados e computação em instâncias EC2.
 
-A proposta distribui a aplicação em uma VPC com duas zonas de disponibilidade. O ALB recebe o tráfego de origem do CloudFront e encaminha as requisições às instâncias saudáveis. As instâncias da aplicação e o banco ficam em sub-redes privadas.
+A arquitetura distribui a aplicação em uma VPC com duas zonas de disponibilidade. O ALB público (`aws_lb.web`, em sub-redes públicas, HTTPS `443`) recebe o tráfego de origem do CloudFront e encaminha as requisições para a frota `web` (`8000`). O ALB interno (`aws_lb.api`, `internal = true`, em sub-redes privadas, HTTP `4000`) recebe chamadas do `web` (`BYTEBISTRO_GRAPHQL_URL=http://${api_alb_dns}:4000/graphql`) e encaminha para a frota `api` (`4000`). Todas as três frotas da aplicação e o banco ficam em sub-redes privadas.
 
 ### 6.1. Entrada e distribuição de tráfego
 
-**Amazon Route 53** — gerenciamento do domínio e resolução DNS.
+**Amazon Route 53** — gerenciamento obrigatório do domínio (`var.domain`, `var.hosted_zone_id`), registros `A`/`AAAA` para o CloudFront, registro `A` `origin.<domínio>` para o ALB público e validação DNS dos certificados ACM.
 
-**Amazon CloudFront** — distribuição de conteúdo e ponto de entrada da aplicação.
+**Amazon CloudFront** — distribuição de conteúdo e ponto de entrada HTTPS obrigatório (`redirect-to-https`, certificado ACM `edge` em `us-east-1`), encaminhando requisições dinâmicas por `https-only` para `origin.<domínio>:443` com cabeçalho secreto `X-ByteBistro-Origin` e servindo `/static/*` do S3 via OAC.
 
-**AWS WAF** — proteção contra requisições maliciosas e ataques comuns à aplicação web.
+**AWS WAF** — proteção ativa (`aws_wafv2_web_acl.edge`) contra requisições maliciosas e ataques comuns à aplicação web, aplicando `AWSManagedRulesCommonRuleSet` em modo de bloqueio por padrão (`waf_enforce = true` -> `none {}`) e limite de taxa (`2000` requisições por IP).
 
-**AWS Certificate Manager** — gerenciamento dos certificados HTTPS.
+**AWS Certificate Manager** — gerenciamento obrigatório de dois certificados validados por DNS no Route 53: `edge` em `us-east-1` (CloudFront) e `origin` na região da aplicação (ALB público).
 
-**Application Load Balancer** — distribuição das requisições entre as instâncias disponíveis.
+**Application Load Balancer** — dois balanceadores gerenciados: ALB público (`aws_lb.web`, sub-redes públicas, listener HTTPS `443` com `ELBSecurityPolicy-TLS13-1-2-2021-06` e health check `/healthz/` na frota `web:8000`) e ALB interno (`aws_lb.api`, sub-redes privadas, listener HTTP `4000` e health check `GET /healthz` sem autenticação na frota `api:4000`).
 
 ### 6.2. Camada de aplicação
 
-**Amazon EC2** — executa os containers da aplicação.
+**Amazon EC2** — executa os containers das três frotas em instâncias Amazon Linux 2023 resolvidas automaticamente via SSM Parameter Store (`data.aws_ssm_parameter.fleet_ami`).
 
-**Auto Scaling Group** — aumenta ou reduz a quantidade de instâncias conforme a demanda e as políticas configuradas.
+**Auto Scaling Group** — três grupos independentes (`web`, `api` e `worker`, mínimo de 2 e máximo de 6 instâncias por frota quando `var.runtime != null`, total mínimo de 6 instâncias), cada um com IAM Role, Launch Template, segredo gerenciado (`aws_secretsmanager_secret.runtime[service].arn`) e política de CPU dedicados (além de escalonamento por backlog SQS no `worker`).
 
-**Amazon ECR** — armazena as imagens Docker utilizadas na implantação.
+**Amazon ECR** — armazena as três imagens Docker (`web`, `api`, `worker`) identificadas por digest em `var.runtime`.
 
-Django, API Node.js e workers terão responsabilidades distintas. A frota de workers poderá escalar separadamente do tráfego web. Separar Django e Node.js em frotas próprias é uma evolução a validar conforme a demanda. [Decisões arquiteturais](architecture-decisions.md)
+Django (`web`), API Node.js + Apollo (`api`) e workers (`worker`) executam em frotas próprias e desacopladas, escalando de forma independente entre entrada web, consultas GraphQL (via ALB interno na porta `4000`) e processamento assíncrono. [Decisões arquiteturais](architecture-decisions.md)
 
 ### 6.3. Camada de dados
 
@@ -124,7 +124,7 @@ Django, API Node.js e workers terão responsabilidades distintas. A frota de wor
 
 **Amazon SQS** — fila de processamento assíncrono.
 
-**Amazon SNS** — distribuição de notificações.
+**Amazon SNS** — distribuição de notificações no tópico criptografado com KMS `aws_sns_topic.notifications` (com assinatura opcional via `var.notification_email` / `aws_sns_topic_subscription.notifications`), tópico separado de alarmes (`var.ops_email`) e envio direto de SMS OTP transacional pela frota `web` (`SnsSmsProvider` com permissão `sns:Publish`).
 
 **Dead Letter Queue** — armazenamento de mensagens que falharam repetidamente.
 
@@ -152,9 +152,9 @@ Django, API Node.js e workers terão responsabilidades distintas. A frota de wor
 
 A arquitetura proposta prevê escalabilidade horizontal para permitir o crescimento da aplicação.
 
-O Application Load Balancer distribui o tráfego entre as instâncias EC2 disponíveis.
+Os Application Load Balancers (público para `web` e interno para `api`) distribuem o tráfego entre as instâncias EC2 disponíveis.
 
-O Auto Scaling Group pode adicionar ou remover instâncias de acordo com métricas e políticas configuradas.
+Os três Auto Scaling Groups independentes (`web`, `api` e `worker`, com `min_size = 2` por frota, mínimo de 6 EC2s quando `var.runtime != null`) podem adicionar ou remover instâncias de acordo com métricas de CPU e volume da fila SQS.
 
 A utilização de duas zonas de disponibilidade reduz a dependência de uma única zona.
 
@@ -168,12 +168,12 @@ O painel atual usa autenticação por sessão, grupos de acesso e proteção CSR
 
 Para a infraestrutura proposta, estão previstos os seguintes controles.
 
-- Comunicação HTTPS.
-- Controle de acesso por IAM.
-- Credenciais armazenadas no Secrets Manager.
-- Banco de dados em sub-redes privadas.
-- Security Groups com permissões restritas.
-- Proteção da camada web com WAF.
+- Comunicação HTTPS obrigatória de ponta a ponta (Route 53 e ACM em `us-east-1`/região, CloudFront com `redirect-to-https` e `https-only` até o ALB público na porta `443` com cabeçalho `X-ByteBistro-Origin`).
+- Controle de acesso por IAM com roles isoladas para `web`, `api` e `worker`.
+- Credenciais armazenadas no Secrets Manager e referenciadas diretamente por frota.
+- Banco de dados em sub-redes isoladas privadas.
+- Security Groups com permissões restritas (incluindo isolamento da `api` atrás do ALB interno na porta `4000`).
+- Proteção ativa da camada web com AWS WAFv2 (`waf_enforce = true` bloqueando `AWSManagedRulesCommonRuleSet` e rate-limit por IP).
 - Armazenamento privado no S3.
 - Separação entre recursos públicos e privados.
 
@@ -181,7 +181,7 @@ Para a infraestrutura proposta, estão previstos os seguintes controles.
 
 O Terraform define grupos de logs e alarmes do CloudWatch para os seguintes indicadores.
 
-- Alvos web saudáveis quando a frota estiver ativa.
+- Alvos saudáveis nos Target Groups `web` (`${var.name}-web-unhealthy`) e `api` (`${var.name}-api-unhealthy`) quando as frotas estiverem ativas.
 - Espaço livre no RDS.
 - Mensagens na DLQ e idade da mensagem mais antiga no SQS.
 

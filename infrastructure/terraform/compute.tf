@@ -33,7 +33,7 @@ resource "aws_iam_role_policy_attachment" "ssm" {
 }
 
 locals {
-  fleet_services = { web = ["web", "api"], worker = ["worker"] }
+  fleet_services = { web = ["web"], api = ["api"], worker = ["worker"] }
   images = var.runtime == null ? {} : {
     web    = var.runtime.web_digest
     api    = var.runtime.api_digest
@@ -57,7 +57,7 @@ resource "aws_iam_role_policy" "runtime" {
         {
           Effect   = "Allow"
           Action   = ["secretsmanager:GetSecretValue"]
-          Resource = [for service in local.fleet_services[each.key] : var.runtime.runtime_secret_arns[service]]
+          Resource = [for service in local.fleet_services[each.key] : aws_secretsmanager_secret.runtime[service].arn]
         },
         {
           Effect   = "Allow"
@@ -86,6 +86,15 @@ resource "aws_iam_role_policy" "runtime" {
             }
           }
         ] : statement if each.key == "worker"
+      ],
+      [
+        for statement in [
+          {
+            Effect   = "Allow"
+            Action   = ["sns:Publish"]
+            Resource = "*"
+          }
+        ] : statement if each.key == "web"
       ]
     )
   })
@@ -97,10 +106,15 @@ resource "aws_iam_instance_profile" "main" {
   role     = aws_iam_role.instance[each.key].name
 }
 
+data "aws_ssm_parameter" "fleet_ami" {
+  count = var.runtime == null ? 0 : 1
+  name  = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+}
+
 resource "aws_launch_template" "main" {
   for_each               = var.runtime == null ? toset([]) : local.fleets
   name_prefix            = "${var.name}-${each.key}-"
-  image_id               = var.runtime.ami_id
+  image_id               = data.aws_ssm_parameter.fleet_ami[0].value
   instance_type          = var.instance_type
   update_default_version = true
   monitoring {
@@ -121,29 +135,33 @@ resource "aws_launch_template" "main" {
     registry      = split("/", aws_ecr_repository.main[each.key].repository_url)[0]
     domain        = local.public_domain
     origin_domain = local.origin_domain
+    api_alb_dns   = aws_lb.api.dns_name
     queue_url     = aws_sqs_queue.jobs.url
     topic_arn     = aws_sns_topic.notifications.arn
     services = {
       for service in local.fleet_services[each.key] : service => {
         image     = "${aws_ecr_repository.main[service].repository_url}@${local.images[service]}"
-        secret    = var.runtime.runtime_secret_arns[service]
+        secret    = aws_secretsmanager_secret.runtime[service].arn
         log_group = aws_cloudwatch_log_group.app[service].name
       }
     }
-    service_order = each.key == "web" ? tolist(["api", "web"]) : tolist(["worker"])
+    service_order = local.fleet_services[each.key]
   }), "\r\n", "\n"))
 }
 
 resource "aws_autoscaling_group" "main" {
-  for_each                  = aws_launch_template.main
-  name                      = "${var.name}-${each.key}"
-  min_size                  = 2
-  enabled_metrics           = ["GroupInServiceInstances"]
-  max_size                  = 6
-  desired_capacity          = 2
-  vpc_zone_identifier       = [for subnet in aws_subnet.private : subnet.id]
-  target_group_arns         = each.key == "web" ? [aws_lb_target_group.web.arn] : []
-  health_check_type         = each.key == "web" ? "ELB" : "EC2"
+  for_each            = aws_launch_template.main
+  name                = "${var.name}-${each.key}"
+  min_size            = 2
+  enabled_metrics     = ["GroupInServiceInstances"]
+  max_size            = 6
+  desired_capacity    = 2
+  vpc_zone_identifier = [for subnet in aws_subnet.private : subnet.id]
+  target_group_arns = lookup({
+    web = [aws_lb_target_group.web.arn]
+    api = [aws_lb_target_group.api.arn]
+  }, each.key, [])
+  health_check_type         = each.key == "worker" ? "EC2" : "ELB"
   health_check_grace_period = 300
   default_instance_warmup   = 300
   launch_template {
@@ -160,7 +178,13 @@ resource "aws_autoscaling_group" "main" {
   lifecycle {
     ignore_changes = [desired_capacity]
   }
-  depends_on = [aws_iam_role_policy.runtime, aws_lb_listener_rule.cloudfront, aws_route_table_association.private]
+  depends_on = [
+    aws_iam_role_policy.runtime,
+    aws_lb_listener.https,
+    aws_lb_listener_rule.cloudfront,
+    aws_lb_listener.api,
+    aws_route_table_association.private,
+  ]
 }
 
 resource "aws_autoscaling_policy" "cpu" {
