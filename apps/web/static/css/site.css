@@ -301,9 +301,24 @@ small {
   border-color:#e5aa80;
 }
 .photo {
+  position:relative;
   aspect-ratio:2/1;
   overflow:hidden;
   background:#eee;
+}
+.productcard.sold-out {
+  opacity:.65;
+}
+.badge-unavailable {
+  position:absolute;
+  top:.5rem;
+  right:.5rem;
+  background:#912b0d;
+  color:#fff;
+  padding:.25rem .6rem;
+  border-radius:6px;
+  font-size:.75rem;
+  font-weight:700;
 }
 .photo img,.detailphoto {
   width:100%;

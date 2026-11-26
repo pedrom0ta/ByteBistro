@@ -1,8 +1,9 @@
+from decimal import Decimal
 import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Category, Ingredient, MenuProduct, Restaurant, Table
+from .models import Category, Ingredient, MenuProduct, ProductIngredient, Restaurant, Table
 
 PAYMENTS = ["Pix", "Cartão de crédito", "Cartão de débito", "Dinheiro"]
 
@@ -38,6 +39,27 @@ class ProductForm(forms.ModelForm):
             extras[name.strip()] = int(price)
         self.instance.extras = list(extras.items())
         return data
+
+class ProductIngredientForm(forms.ModelForm):
+    class Meta:
+        model = ProductIngredient
+        fields = ["ingredient", "quantity_per_unit"]
+
+    def clean_quantity_per_unit(self):
+        value = self.cleaned_data["quantity_per_unit"]
+        if value <= Decimal("0"):
+            raise forms.ValidationError("Informe uma quantidade positiva.")
+        return value
+
+
+ProductIngredientFormSet = forms.inlineformset_factory(
+    MenuProduct,
+    ProductIngredient,
+    form=ProductIngredientForm,
+    extra=2,
+    can_delete=True,
+)
+
 
 class CategoryForm(forms.ModelForm):
     class Meta:

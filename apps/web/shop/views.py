@@ -28,6 +28,7 @@ def menu(request):
     if category:
         products = products.filter(category__name=category)
     matches = [p for p in products if normalize(query) in normalize(f"{p.name} {p.category} {p.description}")]
+    matches.sort(key=lambda p: not p.available)
     return page(request, "menu", products=matches, categories=storefront.categories(), category=category, query=query)
 
 def product(request, slug):

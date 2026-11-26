@@ -2,6 +2,7 @@ from time import sleep
 from django.db import OperationalError, connection, transaction
 from django.utils import timezone
 from .models import Order, OrderEvent
+from .stock import confirm_reservations, release_reservations
 
 ROLES = {
     "gerente": {"dashboard", "orders", "kitchen", "tables", "products", "categories", "inventory", "customers", "reports", "settings"},
@@ -55,6 +56,10 @@ def transition(order, action, user, reason="", expected=None):
                 if not Order.objects.filter(pk=order.pk, stage=order.stage).update(**changes):
                     raise ValueError("Outro funcionário já atualizou este pedido.")
                 OrderEvent.objects.create(order=order, action=action, actor=user, reason=reason)
+                if action in ("reject", "cancel"):
+                    release_reservations(order)
+                elif action == "complete":
+                    confirm_reservations(order)
             return
         except OperationalError as error:
             if connection.vendor != "sqlite" or "locked" not in str(error).lower():

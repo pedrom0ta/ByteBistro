@@ -132,6 +132,10 @@ meter { width: 100%; accent-color: var(--orange); }
   .editor { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 12px; }
   .editor > :is(.errorlist, div, button), .editor p:has(textarea, .helptext) { grid-column: 1 / -1; }
 }
+.recipe-fieldset { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 8px; }
+.recipe-fieldset h3 { font-size: 1rem; margin-bottom: 10px; }
+.recipe-row { display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 8px; }
+.alert-panel { border-left: 4px solid #bd5100; }
 @media (min-width: 1440px) { .kanban { grid-auto-columns: minmax(205px, calc((100% - 48px) / 5)); } }
 @media (max-width: 1023px) { .records-tables { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 767px) {

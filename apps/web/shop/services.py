@@ -1,8 +1,10 @@
 import uuid
+from time import sleep
 from django.conf import settings
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Q
 from .models import Customer, Order, OrderEvent, OrderOutbox
+from .stock import reserve_stock
 from . import storefront
 
 DELIVERY_FEE = 690
@@ -82,25 +84,35 @@ def confirm(session, token, mode, destination, payment, notes):
         items=totals["lines"], subtotal=totals["subtotal"],
         discount=totals["discount"], fee=fee, total=totals["partial"] + fee,
     )
-    try:
-        with transaction.atomic():
-            # Insert first so concurrent SQLite writers serialize on the unique key.
-            order = Order.objects.create(**fields)
-            OrderEvent.objects.create(order=order, action="received")
-            if getattr(settings, "BYTEBISTRO_OUTBOX_ENABLED", False):
-                OrderOutbox.objects.create(order=order)
-            if mode == "delivery":
-                # Serialize changes to the address list while allowing order foreign-key checks.
-                customers = Customer.objects.select_for_update(no_key=connection.features.has_select_for_no_key_update)
-                account = customers.filter(pk=fields["customer_id"]).first()
-                if account is None:
-                    raise ValueError("Entre na sua conta para concluir o pedido.")
-                if destination not in account.addresses:
-                    account.addresses.append(destination)
-                    account.save(update_fields=["addresses"])
-    except IntegrityError:
-        order = orders(session).filter(token=token).first()
-        if order is None:
-            raise
+    for attempt in range(4):
+        try:
+            with transaction.atomic():
+                # Insert first so concurrent SQLite writers serialize on the unique key.
+                order = Order.objects.create(**fields)
+                OrderEvent.objects.create(order=order, action="received")
+                reserve_stock(order, totals["lines"])
+                if getattr(settings, "BYTEBISTRO_OUTBOX_ENABLED", False):
+                    OrderOutbox.objects.create(order=order)
+                if mode == "delivery":
+                    # Serialize changes to the address list while allowing order foreign-key checks.
+                    customers = Customer.objects.select_for_update(no_key=connection.features.has_select_for_no_key_update)
+                    account = customers.filter(pk=fields["customer_id"]).first()
+                    if account is None:
+                        raise ValueError("Entre na sua conta para concluir o pedido.")
+                    if destination not in account.addresses:
+                        account.addresses.append(destination)
+                        account.save(update_fields=["addresses"])
+            break
+        except IntegrityError:
+            order = orders(session).filter(token=token).first()
+            if order is None:
+                raise
+            break
+        except OperationalError as error:
+            if connection.vendor != "sqlite" or "locked" not in str(error).lower():
+                raise
+            if attempt == 3:
+                raise ValueError("Banco ocupado. Tente novamente.") from error
+            sleep(0.025 * (attempt + 1))
     change_cart(session, [])
     return order

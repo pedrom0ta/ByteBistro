@@ -147,6 +147,9 @@ class Ingredient(models.Model):
     def low(self):
         return self.quantity <= self.minimum
 
+    def __str__(self):
+        return f"{self.name} ({self.unit})"
+
 
 class StockMovement(models.Model):
     ingredient = models.ForeignKey(Ingredient, related_name="movements", on_delete=models.PROTECT)
@@ -154,6 +157,42 @@ class StockMovement(models.Model):
     reason = models.CharField(max_length=300)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     created = models.DateTimeField(auto_now_add=True)
+
+
+class ProductIngredient(models.Model):
+    """Vincula um produto do cardápio aos insumos consumidos por unidade."""
+    product = models.ForeignKey(MenuProduct, related_name="recipe", on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, related_name="used_in", on_delete=models.PROTECT)
+    quantity_per_unit = models.DecimalField(
+        "Quantidade por unidade do produto",
+        max_digits=12,
+        decimal_places=3,
+    )
+
+    class Meta:
+        unique_together = [("product", "ingredient")]
+
+
+class StockReservation(models.Model):
+    """Reserva de insumo vinculada a um pedido, com transição de estado idempotente."""
+    ACTIVE = "active"
+    CONFIRMED = "confirmed"
+    RELEASED = "released"
+    STATUS_CHOICES = [
+        (ACTIVE, "Ativa"),
+        (CONFIRMED, "Confirmada"),
+        (RELEASED, "Liberada"),
+    ]
+
+    order = models.ForeignKey(Order, related_name="reservations", on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=ACTIVE)
+    created = models.DateTimeField(auto_now_add=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["order", "status"], name="shop_stockres_order_status_idx")]
 
 
 class Restaurant(models.Model):
@@ -169,3 +208,4 @@ class Restaurant(models.Model):
     payments = models.JSONField(default=list)
     alert_minutes = models.PositiveIntegerField("Alertar após minutos de espera", default=5)
     sound = models.BooleanField("Permitir alerta sonoro", default=False)
+    low_stock_alert = models.BooleanField("Alertar estoque baixo no dashboard", default=True)

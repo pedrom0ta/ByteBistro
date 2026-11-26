@@ -1,9 +1,10 @@
-{% load static bistro %}<a class="productcard" href="{% url 'product' p.slug %}">
+{% load static bistro %}<a class="productcard{% if not p.available %} sold-out{% endif %}" href="{% url 'product' p.slug %}">
 <div class="photo"><img loading="lazy" src="{{ p.image_url }}" alt="{{ p.name }}">
+{% if not p.available %}<span class="badge-unavailable">Esgotado</span>{% endif %}
 </div>
 <div class="cardbody"><small>{{ p.category }}</small>
 <h3>{{ p.name }}</h3>
 <p>{{ p.description }}</p>
-<div class="pricebar"><strong>{{ p.final|brl }}</strong><span aria-hidden="true">+</span>
+<div class="pricebar"><strong>{{ p.final|brl }}</strong>{% if p.available %}<span aria-hidden="true">+</span>{% endif %}
 </div>
 </div></a>

@@ -40,7 +40,18 @@
 <div>
 <section class="panel"><h2>{% if section == 'settings' %}Preferências{% elif selected %}Editar registro{% else %}Novo registro{% endif %}</h2>
 {% if selected %}<a href="?">Novo registro</a>{% endif %}
-<form method="post" class="editor">{% csrf_token %}{{ form.as_p }}<button class="primary">Salvar</button></form></section>
+<form method="post" class="editor">{% csrf_token %}{{ form.as_p }}
+{% if recipe_formset %}
+<div class="recipe-fieldset">
+<h3>Receita (insumos por unidade)</h3>
+{{ recipe_formset.management_form }}
+{% if recipe_formset.non_form_errors %}{{ recipe_formset.non_form_errors }}{% endif %}
+{% for subform in recipe_formset %}
+<div class="recipe-row">{{ subform.as_p }}</div>
+{% endfor %}
+</div>
+{% endif %}
+<button class="primary">Salvar</button></form></section>
 {% if section == 'inventory' and selected %}
 <section class="panel"><h2>Movimentar estoque</h2><form method="post" class="editor">{% csrf_token %}{{ movement.as_p }}<button name="movement" value="1" class="primary">Registrar movimentação</button></form>
 <h3>Histórico</h3>{% for movement in selected.movements.all reversed %}<p>{{ movement.created|date:"d/m/Y H:i" }} · {{ movement.delta }} · {{ movement.reason }} · {{ movement.actor|default:"—" }}</p>{% empty %}<p>Nenhuma movimentação.</p>{% endfor %}</section>

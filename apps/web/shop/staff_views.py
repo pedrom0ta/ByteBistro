@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 from . import staff_forms as forms
 from .models import Category, Customer, Ingredient, MenuProduct, Order, OrderEvent, StockMovement, Table
 from .operations import SECTIONS, access, actions, transition
+from .stock import refresh_product_availability
 from .storefront import restaurant
 
 def restricted(section):
@@ -139,9 +140,13 @@ def show(request, section):
         revenue = [(date, daily_receipts[date]) for date in sorted(daily_receipts)]
         values.update(received=gross, ticket=gross//len(receipts) if receipts else None,
                       unpaid=sum(o.total for o in entries if not o.paid_at and o.stage < 90))
+        low_stock = []
+        if section == "dashboard" and restaurant().low_stock_alert:
+            low_stock = list(Ingredient.objects.filter(quantity__lte=F("minimum")).order_by("name"))
         return layout(request, section, "dashboard", entries=entries[:10], values=values,
                       days=days, sales=sales.most_common(8), modes=list(modes.items()),
-                      revenue=revenue, revenue_max=max(daily_receipts.values(), default=1))
+                      revenue=revenue, revenue_max=max(daily_receipts.values(), default=1),
+                      low_stock=low_stock)
     if section == "customers":
         customers = Customer.objects.all().order_by("name")
         for person in customers:
@@ -207,14 +212,34 @@ def manage(request, section):
                         quantity=F("quantity")+delta, updated=timezone.now())
                     if written:
                         StockMovement.objects.create(ingredient=instance, delta=delta, actor=request.user, reason=data["reason"])
+                        refresh_product_availability(ingredient_ids=[instance.pk])
                 if written:
                     return redirect(request.path+"?edit="+str(instance.pk))
                 movement.add_error(None, "O saldo mudou. Revise e tente novamente.")
         form = form_class(instance=instance)
+        recipe_formset = None
     else:
         movement = forms.MovementForm()
         form = form_class(request.POST or None, instance=instance)
-        if form.is_valid():
+        recipe_formset = None
+        if section == "products":
+            has_formset_data = request.method == "POST" and "recipe-TOTAL_FORMS" in request.POST
+            if has_formset_data:
+                recipe_formset = forms.ProductIngredientFormSet(request.POST, instance=instance, prefix="recipe")
+                if form.is_valid() and recipe_formset.is_valid():
+                    with transaction.atomic():
+                        saved_product = form.save()
+                        recipe_formset.instance = saved_product
+                        recipe_formset.save()
+                        if saved_product.recipe.exists():
+                            refresh_product_availability(product_ids=[saved_product.pk])
+                    return redirect("staff_section", section)
+            elif form.is_valid():
+                form.save()
+                return redirect("staff_section", section)
+            if recipe_formset is None:
+                recipe_formset = forms.ProductIngredientFormSet(instance=instance, prefix="recipe")
+        elif form.is_valid():
             form.save()
             return redirect("staff_section", section)
     entries = list(model.objects.order_by(sort))
@@ -231,7 +256,8 @@ def manage(request, section):
         for table in entries:
             table.balance = sum(o.total for o in table.active_orders)
     return layout(request, section, form=form, entries=entries, selected=instance,
-                  movement=movement, can_edit=section != "tables" or "settings" in request.scopes)
+                  movement=movement, recipe_formset=recipe_formset,
+                  can_edit=section != "tables" or "settings" in request.scopes)
 
 @never_cache
 def board_fragment(request, section):
